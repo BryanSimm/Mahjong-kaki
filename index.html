@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mahjong Kaki</title>
-<meta name="description" content="Singapore-style mahjong for four. Play bots, or host a table and invite your kakis.">
+<title>Lai Mahjong</title>
+<meta name="description" content="Lai Mahjong: Singapore-style mahjong for four. Play bots, or host a table and invite your kakis.">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -134,7 +134,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
  .stat{flex-direction:column;gap:0}
 }
 .bar{position:sticky;top:0;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px max(3vw,12px);background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(6px)}
-.brand{font:900 20px 'Noto Serif TC',serif;color:var(--red)}.brand span{font-family:Figtree,sans-serif;color:var(--ink);font-weight:800}
+.brand{font:900 20px 'Noto Serif TC',serif;color:var(--red)}.brand span{font-family:Figtree,sans-serif;color:var(--ink);font-weight:800;margin-right:2px}
 .bar-r{display:flex;gap:8px}
 .chip{font:700 15px Figtree,sans-serif;min-height:44px;padding:0 14px;border-radius:22px;border:0;background:rgba(0,0,0,.25);color:var(--ink);display:inline-flex;align-items:center;gap:8px;cursor:pointer;max-width:46vw}
 .chip:focus-visible,.tabs button:focus-visible{outline:3px solid #fff;outline-offset:2px}
@@ -223,11 +223,11 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 </style>
 </head>
 <body>
-<header class="bar"><span class="brand">麻將 <span>Kaki</span></span></header>
+<header class="bar"><span class="brand"><span>Lai</span> 麻將</span></header>
 <main id="home">
  <section class="band">
   <div class="fan" id="fan"></div>
-  <h1>Mahjong Kaki<span lang="zh">麻將</span></h1>
+  <h1>Lai Mahjong<span lang="zh">麻將</span></h1>
   <p class="lede">Singapore-style mahjong for four. Play three bots on your own, or open a table and send your kakis the code.</p>
   <form class="panel" id="f">
    <label for="nm">Your name</label>
