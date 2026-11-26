@@ -43,6 +43,10 @@ input:focus-visible,.btn:focus-visible,summary:focus-visible,.hand .t:focus-visi
 .rules{max-width:820px;margin:0 auto}
 details{background:rgba(0,0,0,.16);border-radius:14px;padding:6px 18px}
 summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.rx{padding:12px 0;border-bottom:1px solid rgba(246,239,220,.15)}
+.rxh{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.rxh span{white-space:nowrap;color:#ffd54a;font-weight:700}
+.rxt{display:flex;flex-wrap:wrap;gap:6px 12px;margin:10px 0 6px;--tw:clamp(22px,4.6vw,32px)}.rxg{display:inline-flex;gap:2px}
+.rxn{margin:0;font-size:14px;color:var(--dim)}
 .gh{font-size:16px;margin:16px 0 8px}.gt{display:flex;flex-wrap:wrap;gap:6px 4px;--tw:clamp(32px,7vw,46px);padding-bottom:6px}
 .rules table{width:100%;border-collapse:collapse;margin:8px 0 14px}
 .rules td{padding:6px 0;border-bottom:1px solid rgba(246,239,220,.15)}.rules td:last-child{text-align:right;white-space:nowrap}
@@ -218,6 +222,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 .t.glow{outline:3px solid #ffd54a;outline-offset:1px;box-shadow:0 0 0 5px rgba(255,213,74,.35),0 0 18px 4px rgba(255,213,74,.75);animation:glowp 1s ease-in-out infinite alternate;position:relative;z-index:2}
 @keyframes glowp{to{box-shadow:0 0 0 3px rgba(255,213,74,.2),0 0 8px 2px rgba(255,213,74,.5)}}
 @media(prefers-reduced-motion:reduce){.t.glow{animation:none}}
+.btn.endg.armed{background:var(--red);color:#fff;box-shadow:0 4px 0 #8f1c22;opacity:1}
 .outinfo{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin:0;font-size:15px;background:rgba(255,213,74,.14);border:1px solid rgba(255,213,74,.45);border-radius:12px;padding:6px 12px;width:max-content;max-width:100%;margin-inline:auto}
 .outinfo b{color:#ffd54a;font-size:17px}
 </style>
@@ -248,17 +253,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
    <div id="guide"></div>
    <p>148 tiles: dots, bamboo and characters (1–9, four of each), four winds, three dragons, eight flowers and seasons, and four animals (cat, mouse, rooster, centipede). Bonus tiles go face-up and you draw a replacement.</p>
    <p>Win with four sets (pong, kong or chow) plus a pair, or thirteen wonders. A hand needs at least <b>1 tai</b>, and scoring caps at <b>5 tai</b>. Chow only from the player on your left; Hu beats Pong/Kong, which beats Chow.</p>
-   <table><tbody>
-    <tr><td>Pong of any dragon (中 發 白)</td><td>1 tai each</td></tr>
-    <tr><td>Pong of your seat wind / the round wind</td><td>1 tai each</td></tr>
-    <tr><td>Flower or season matching your seat (East = 1 … North = 4)</td><td>1 tai each</td></tr>
-    <tr><td>Each animal</td><td>1 tai each</td></tr>
-    <tr><td>All pongs</td><td>2 tai</td></tr>
-    <tr><td>Half colour (one suit + honours)</td><td>2 tai</td></tr>
-    <tr><td>Ping hu (all chows, no bonus tiles, two-sided wait)</td><td>4 tai</td></tr>
-    <tr><td>Full colour (one suit)</td><td>4 tai</td></tr>
-    <tr><td>Thirteen wonders, three great scholars, four great winds, all honours</td><td>5 tai (limit)</td></tr>
-   </tbody></table>
+   <div id="rulesEx"></div>
    <p>Payout unit doubles per tai: 1, 2, 4, 8, 16. Win off a discard: the shooter pays double, the others pay single. Self-drawn: everyone pays double. Instant "bites": cat + mouse or rooster + centipede, everyone pays 1; exposed kong, everyone pays 1; concealed kong, everyone pays 2.</p>
    <p>Everyone starts at 0 points. The game ends after four wind rounds, or when the game time limit (if you set one) runs out. The dealer keeps the deal after winning or a drawn hand.</p>
   </details>
@@ -287,7 +282,7 @@ const LBL=c=>{if(!VALID.has(c))return'?';const k=c[0],n=+c[1];
  if(k==='X')return WCH['ESWN'.indexOf(c[1])]+' wind';if(k==='Z')return{R:'中 red',G:'發 green',W:'白 white'}[c[1]]+' dragon';
  if(k==='F')return'梅蘭菊竹'[n-1]+' flower';if(k==='Q')return'春夏秋冬'[n-1]+' season';return['Cat','Mouse','Rooster','Centipede'][n-1]};
 const NUMCH=['','一','二','三','四','伍','六','七','八','九'];
-const INK='#1c2621',RED='#c0222e',GRN='#1f6b45';
+const INK='#1c2621',RED='#c0222e',GRN='#1f6b45',GOLD='#e0a526';
 const FONT="'LXGW WenKai TC','Noto Serif TC',serif";
 const TX=(x,y,s,f,ch,w=700)=>`<text x="${x}" y="${y}" font-size="${s}" fill="${f}" font-weight="${w}" text-anchor="middle" font-family="${FONT}">${ch}</text>`;
 /* bamboo stick with joints */
@@ -322,10 +317,57 @@ function flower(petal,leafy){let s=`<path d="M15 37 C14 31 16 28 15 23" stroke="
  for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;s+=`<circle cx="${(15+3.6*Math.cos(a)).toFixed(2)}" cy="${(19+3.6*Math.sin(a)).toFixed(2)}" r="2.7" fill="${petal}"/>`}
  return s+`<circle cx="15" cy="19" r="1.8" fill="#f0c43a" stroke="${INK}" stroke-width=".5"/>`}
 const ANIMAL=[
- /* cat */`<g fill="none" stroke="${INK}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 33 C7 25 11 20 17 21 C22 22 23 28 22 33Z" fill="${INK}"/><circle cx="12" cy="15" r="4.6" fill="${INK}"/><path d="M8.2 12.5 L8 7.6 L11 10.8 M13.2 10.6 L16.4 7.8 L16 12.6" fill="${INK}"/><path d="M22 31 C27 30 27 24 24 22"/><path d="M10 35 v2 M14 35 v2 M18 35 v2"/></g><circle cx="10.5" cy="14.6" r=".8" fill="#f0c43a"/><circle cx="13.6" cy="14.6" r=".8" fill="#f0c43a"/>`,
- /* mouse */`<g stroke="${INK}" stroke-width="1.3" stroke-linecap="round" fill="none"><path d="M7 27 C7 20 13 17 19 19 C23 20 24 25 22 28 C19 31 10 31 7 27Z" fill="${INK}"/><circle cx="18" cy="16.5" r="2.6" fill="${INK}"/><path d="M7 27 L4 26.5"/><path d="M21 28 C26 30 25 35 20 35 C16 35 14 33 11 34"/><path d="M10 30 v3 M17 30 v3"/></g><circle cx="9.5" cy="24" r=".8" fill="#fff"/>`,
- /* rooster */`<g stroke-linecap="round" stroke-linejoin="round"><path d="M8 30 C6 22 10 17 14 18 C16 13 21 14 21 19 C25 20 25 28 20 31 C16 33 11 33 8 30Z" fill="${RED}"/><path d="M14 18 C14 13 16 10 18 10 C20 10 21 13 21 19" fill="${RED}"/><path d="M16 9.5 C16 7 17.5 6.5 18 8 C18.5 6 20 6.5 19.8 9" fill="${RED}"/><path d="M21 12 L24 13 L21 14Z" fill="#e3a51c"/><circle cx="19" cy="12.3" r=".7" fill="#fff"/><path d="M8 29 C4 25 4 19 6 15 M9 27 C6 22 7 17 9 14" stroke="${GRN}" stroke-width="1.4" fill="none"/><path d="M13 32 v5 M18 32 v5 M11 37h4 M16 37h4" stroke="${INK}" stroke-width="1.1"/></g>`,
- /* centipede */`<g stroke="${RED}" stroke-width="1.1" stroke-linecap="round" fill="none">${Array.from({length:8},(_,i)=>{const y=10+i*3.4,x=15+Math.sin(i*.9)*2.5;return`<path d="M${(x-2).toFixed(2)} ${y} l-3 ${i%2?1:-1} M${(x+2).toFixed(2)} ${y} l3 ${i%2?1:-1}"/><ellipse cx="${x.toFixed(2)}" cy="${y}" rx="2.4" ry="1.6" fill="${RED}" stroke="${INK}" stroke-width=".4"/>`}).join('')}<circle cx="15" cy="7" r="2" fill="${INK}" stroke="none"/><path d="M14 5.5 L11.5 2.5 M16 5.5 L18.5 2.5" stroke="${INK}"/></g>`];
+/* cat: sitting black cat, looking back, curled tail */
+`<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M15.5 36.5 C9 36.5 7.5 31 8.5 26.5 C9.5 22 12 19.5 13 17 L18.5 17.5 C20 21 22.5 24 22.5 29 C22.5 33.5 20 36.5 15.5 36.5Z" fill="${INK}"/>
+<path d="M21.5 33 C25.5 33.5 27.5 30.5 26 27.5 C25 25.5 23 26 23.5 27.8" fill="none" stroke="${INK}" stroke-width="2"/>
+<ellipse cx="15.6" cy="13.2" rx="5.4" ry="4.9" fill="${INK}"/>
+<path d="M10.6 11.8 L10.2 5.6 L14 9.4Z M17.2 9.4 L21 5.6 L20.6 11.8Z" fill="${INK}"/>
+<path d="M11.3 10.5 L11.1 7.3 L13 9.3Z M18.2 9.3 L20.1 7.3 L19.9 10.5Z" fill="${RED}" opacity=".85"/>
+<ellipse cx="13.6" cy="13" rx="1.25" ry="1.45" fill="${GOLD}"/><ellipse cx="17.6" cy="13" rx="1.25" ry="1.45" fill="${GOLD}"/>
+<path d="M13.6 12.1v1.8M17.6 12.1v1.8" stroke="${INK}" stroke-width=".55"/>
+<path d="M15 15.3 L16.2 15.3 L15.6 16Z" fill="${RED}"/>
+<path d="M12.2 15.8 L7.6 15.2 M12.2 16.5 L7.8 17.2 M19 15.8 L23.6 15.2 M19 16.5 L23.4 17.2" stroke="#fff" stroke-width=".4" opacity=".8"/>
+<path d="M12.5 36.4 v-3 M16.5 36.4 v-3" stroke="#fff" stroke-width=".5" opacity=".5"/>
+<path d="M10 25.5 C11.5 24 13 24 14 25.2" fill="none" stroke="#fff" stroke-width=".5" opacity=".35"/>
+</g>`,
+/* mouse: side view, big ear, long curly tail */
+`<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M5.5 25.5 C6 20 10.5 16.5 16 17 C21.5 17.5 24.5 21.5 24 25.5 C23.6 28.5 21 29.5 18 29.5 L9 29.5 C7 29.5 5.3 27.8 5.5 25.5Z" fill="${INK}"/>
+<path d="M5.8 24.2 L2.6 25.4 L5.6 26.6Z" fill="${INK}"/>
+<circle cx="2.7" cy="25.4" r=".8" fill="${RED}"/>
+<circle cx="10.4" cy="18.6" r="3.3" fill="${INK}"/><circle cx="10.4" cy="18.6" r="1.9" fill="${RED}" opacity=".75"/>
+<circle cx="7.6" cy="23.2" r=".9" fill="#fff"/><circle cx="7.8" cy="23.1" r=".45" fill="${INK}"/>
+<path d="M4.4 25 L1.2 23.6 M4.4 25.8 L1 26.4 M4.6 26.4 L1.8 28.2" stroke="${INK}" stroke-width=".4"/>
+<path d="M23.4 26 C27.5 26.5 28.5 30.5 26 33 C23.5 35.5 18.5 34.5 16 36.5 C14 38 15 39 16.5 38.5" fill="none" stroke="${INK}" stroke-width="1.1"/>
+<path d="M10 29.3 L9 32 L10.8 32 M18.5 29.3 L18 32 L19.8 32" fill="none" stroke="${INK}" stroke-width="1"/>
+<path d="M12 21 C15 19.6 19 20 21.5 22.4" fill="none" stroke="#fff" stroke-width=".55" opacity=".35"/>
+</g>`,
+/* rooster: red body, comb, wattle, green tail feathers */
+`<g stroke-linejoin="round" stroke-linecap="round">
+<path d="M6 13 C3 17 3.5 23.5 7.5 27" fill="none" stroke="${GRN}" stroke-width="2.2"/>
+<path d="M8 11 C4.8 15.5 5.5 21 9 25" fill="none" stroke="${INK}" stroke-width="1.6"/>
+<path d="M10.5 10.5 C8.5 14.5 9 19 11.5 22.5" fill="none" stroke="${GRN}" stroke-width="1.4"/>
+<path d="M9.5 24.5 C9 30.5 13.5 33 17.5 32.5 C22 32 24 28.5 23.5 24.5 C23.2 21.5 21.5 19.5 21 17 L17 17.5 C17 20 14 21.5 11.5 22 C10.4 22.3 9.6 23.2 9.5 24.5Z" fill="${RED}"/>
+<path d="M12.5 25 C15 27.5 18.5 27.5 20.5 25.5" fill="none" stroke="${GOLD}" stroke-width="1.1"/>
+<path d="M13 27.8 C15.5 30 18.5 30 20 28.4" fill="none" stroke="#8a1520" stroke-width=".7"/>
+<path d="M17 17.8 C16 13 17 9.5 19.6 9.3 C22.4 9.1 23.4 12 22.5 14.5 C22 16 21.4 16.8 21 17.5Z" fill="${RED}"/>
+<path d="M17.8 9.8 C17.4 7.6 18.4 6.4 19.2 7.6 C19.4 5.6 20.8 5.4 21 7.2 C21.8 5.8 23.2 6.4 22.4 8.4 C23.4 8.4 23.6 9.6 22.4 10.2Z" fill="${RED}" stroke="#8a1520" stroke-width=".4"/>
+<path d="M22.6 11.3 L25.6 12.2 L22.6 13.3Z" fill="${GOLD}"/>
+<path d="M22.2 14 C23.4 14.4 23.6 16.2 22.4 16.8 C21.6 16.4 21.6 14.8 22.2 14Z" fill="#8a1520"/>
+<circle cx="20.6" cy="11.4" r=".95" fill="#fff"/><circle cx="20.8" cy="11.4" r=".5" fill="${INK}"/>
+<path d="M15 32.5 L14.4 37 M19 32.3 L19.4 37 M12.4 37 L16.4 37 M17.4 37 L21.4 37 M14.4 37 L13 35.6 M19.4 37 L20.8 35.6" fill="none" stroke="${GOLD}" stroke-width="1.1"/>
+</g>`,
+/* centipede: S-curved red body, legs, antennae, tail feelers */
+(()=>{const pts=[];for(let i=0;i<11;i++){const t=i/10,y=8+t*26,x=15+Math.sin(t*Math.PI*1.6+0.3)*6.5;pts.push([x,y])}
+ let s='<g stroke-linecap="round" stroke-linejoin="round">';
+ for(let i=1;i<pts.length;i++){const[x,y]=pts[i],[px,py]=pts[i-1];const dx=x-px,dy=y-py,L=Math.hypot(dx,dy),nx=-dy/L,ny=dx/L;
+  s+=`<path d="M${(x+nx*2).toFixed(2)} ${(y+ny*2).toFixed(2)} q${(nx*2.6).toFixed(2)} ${(ny*2.6-0.6).toFixed(2)} ${(nx*3.8+0.4).toFixed(2)} ${(ny*3.8+1.6).toFixed(2)} M${(x-nx*2).toFixed(2)} ${(y-ny*2).toFixed(2)} q${(-nx*2.6).toFixed(2)} ${(-ny*2.6-0.6).toFixed(2)} ${(-nx*3.8-0.4).toFixed(2)} ${(-ny*3.8+1.6).toFixed(2)}" fill="none" stroke="${INK}" stroke-width=".7"/>`}
+ for(let i=pts.length-1;i>=1;i--){const[x,y]=pts[i];s+=`<ellipse cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" rx="2.7" ry="1.9" fill="${i%2?RED:'#a51b26'}" stroke="${INK}" stroke-width=".45"/><path d="M${(x-1.6).toFixed(2)} ${(y-.3).toFixed(2)} h3.2" stroke="${GOLD}" stroke-width=".45"/>`}
+ const[hx,hy]=pts[0];s+=`<ellipse cx="${hx.toFixed(2)}" cy="${hy.toFixed(2)}" rx="2.6" ry="2.2" fill="${INK}"/><circle cx="${(hx-1).toFixed(2)}" cy="${(hy-.4).toFixed(2)}" r=".45" fill="${GOLD}"/><circle cx="${(hx+1).toFixed(2)}" cy="${(hy-.4).toFixed(2)}" r=".45" fill="${GOLD}"/>`;
+ s+=`<path d="M${hx-1} ${hy-2} C${hx-3} ${hy-4.5} ${hx-5.5} ${hy-4.5} ${hx-6.5} ${hy-3} M${hx+1} ${hy-2} C${hx+3} ${hy-4.5} ${hx+5.5} ${hy-4.5} ${hx+6.5} ${hy-3}" fill="none" stroke="${INK}" stroke-width=".7"/>`;
+ const[tx,ty]=pts[pts.length-1];s+=`<path d="M${tx-1} ${ty+1.5} l-2.4 3 M${tx+1} ${ty+1.5} l2.4 3" stroke="${INK}" stroke-width=".7"/></g>`;return s})()
+];
 function face(c){const k=c[0],n=+c[1];
  if(k==='C')return TX(15,16.5,13.5,INK,NUMCH[n])+TX(15,35.5,16,RED,'萬');
  if(k==='D')return n===1?bigDot:DOTS[n].map(([x,y,col])=>ring(x,y,DOTR[n],col)).join('');
@@ -345,6 +387,20 @@ $('#fan').innerHTML=['ZR','A1','D5','XE','B7','C8','ZG'].map((c,i)=>tile(c).repl
 
 {const grp=[['Characters (萬) 1–9',[1,2,3,4,5,6,7,8,9].map(n=>'C'+n)],['Bamboo (索) 1–9',[1,2,3,4,5,6,7,8,9].map(n=>'B'+n)],['Dots (筒) 1–9',[1,2,3,4,5,6,7,8,9].map(n=>'D'+n)],['Winds: East, South, West, North',WINDS],['Dragons: red 中, green 發, white 白',['ZR','ZG','ZW']],['Flowers and seasons: number = seat (1 East … 4 North)',[1,2,3,4].map(n=>'F'+n).concat([1,2,3,4].map(n=>'Q'+n))],['Animals: cat catches mouse, rooster catches centipede',['A1','A2','A3','A4']]];
  $('#guide').innerHTML=grp.map(([h,cs])=>`<h3 class="gh">${h}</h3><div class="gt">${cs.map(c=>tile(c)).join('')}</div>`).join('')}
+{const EX=[
+ ['How to win: 4 sets + 1 pair','',[['C1','C2','C3'],['D5','D5','D5'],['B6','B7','B8'],['ZR','ZR','ZR'],['XE','XE']],'Chow (3 in a row) · Pong (3 the same) · Chow · Pong · Pair'],
+ ['Pong of any dragon (中 發 白)','1 tai each',[['ZR','ZR','ZR'],['ZG','ZG','ZG'],['ZW','ZW','ZW']],'Each of these pongs is worth 1 tai'],
+ ['Pong of your seat wind / the round wind','1 tai each',[['XE','XE','XE']],'East pong: 1 tai if you sit East, +1 more in the East round'],
+ ['Flower or season matching your seat','1 tai each',[['F1','Q1']],'Seat numbers: East 1 · South 2 · West 3 · North 4. These two count for East'],
+ ['Each animal','1 tai each',[['A1','A2'],['A3','A4']],'Cat + mouse or rooster + centipede also bite: everyone pays 1'],
+ ['All pongs','2 tai',[['B2','B2','B2'],['D7','D7','D7'],['C9','C9','C9'],['XS','XS','XS'],['D1','D1']],'Every set is a pong or kong, no chows'],
+ ['Half colour (one suit + honours)','2 tai',[['C1','C2','C3'],['C5','C5','C5'],['C7','C8','C9'],['ZG','ZG','ZG'],['XN','XN']],'Only 萬 plus winds/dragons'],
+ ['Ping hu (all chows, no bonus tiles, two-sided wait)','4 tai',[['C2','C3','C4'],['D4','D5','D6'],['B6','B7','B8'],['C6','C7','C8'],['D9','D9']],'Win on a tile that finishes a chow at either end, e.g. waiting on 2 or 5 with 3-4'],
+ ['Full colour (one suit)','4 tai',[['B1','B2','B3'],['B4','B4','B4'],['B5','B6','B7'],['B9','B9','B9'],['B8','B8']],'Every tile is bamboo: no honours at all'],
+ ['Thirteen wonders','5 tai (limit)',[['C1','C9','D1','D9','B1','B9','XE','XS','XW','XN','ZR','ZG','ZW','ZW']],'Every 1 and 9, every wind and dragon, plus one duplicate'],
+ ['Three great scholars','5 tai (limit)',[['ZR','ZR','ZR'],['ZG','ZG','ZG'],['ZW','ZW','ZW'],['C4','C5','C6'],['D2','D2']],'Pongs of all three dragons'],
+ ['Four great winds / All honours','5 tai (limit)',[['XE','XE','XE'],['XS','XS','XS'],['XW','XW','XW'],['XN','XN','XN'],['ZR','ZR']],'Pongs of all four winds (this one is also all honours)']];
+ $('#rulesEx').innerHTML=EX.map(([n,t,groups,note])=>`<div class="rx"><div class="rxh"><b>${n}</b>${t?`<span>${t}</span>`:''}</div><div class="rxt">${groups.map(g=>`<span class="rxg">${g.map(c=>tile(c)).join('')}</span>`).join('')}</div><p class="rxn">${note}</p></div>`).join('')}
 /* ---------- rules engine (runs on the host) ---------- */
 let G=null,tm=null,mode=null;
 const HID=Math.random().toString(36).slice(2,8);
@@ -399,7 +455,7 @@ function drawTile(s,back){const P=G.seats[s];
   P.hand.push(t);G.drawn=t;return true}}
 function startGame(){const names=['Uncle Lim','Auntie May','Ah Seng'].filter(n=>!G.seats.some(p=>p&&p.name===n));
  G.seats=G.seats.map(p=>p||mkSeat(names.shift()||'Bot','',true));
- for(const p of G.seats)p.score=0;Object.assign(G,{dealer:0,round:0,moves:0,handNo:0,timeUp:false,endsAt:G.timeLimit?Date.now()+G.timeLimit*60000:0});startHand()}
+ for(const p of G.seats)p.score=0;Object.assign(G,{dealer:0,round:0,moves:0,handNo:0,timeUp:false,hostEnded:false,endsAt:G.timeLimit?Date.now()+G.timeLimit*60000:0});startHand()}
 function startHand(){clearTimeout(tm);G.ready={};G.wall=newWall();G.handNo++;G.result=null;G.log=[];
  for(const P of G.seats)Object.assign(P,{hand:[],melds:[],bonus:[],discards:[]});
  log(`Hand ${G.handNo}: ${WCH[G.round]} round, ${G.seats[G.dealer].name} deals`);
@@ -465,6 +521,7 @@ function exhausted(){clearTimeout(tm);G.result={draw:true};log('The wall is empt
 function nextHand(){if(G.round>=4){G.phase='over';G.ready={};push()}else startHand()}
 const cleanTL=v=>{v=Math.round(Number(v));return Number.isFinite(v)&&v>0?Math.min(300,v):0};
 const pickedTL=()=>cleanTL($('#tlIn').value);
+function endByHost(){if(!G||(G.phase!=='play'&&G.phase!=='end'))return;clearTimeout(tm);G.hostEnded=true;G.phase='over';G.sub=null;G.claims=null;G.ready={};log('The host ended the game.');push()}
 function timeUp(){clearTimeout(tm);G.timeUp=true;G.phase='over';G.sub=null;G.claims=null;G.ready={};log('Time’s up! The game is over.');push()}
 setInterval(()=>{if(G&&mode!=='guest'&&G.endsAt&&(G.phase==='play'||G.phase==='end')&&Date.now()>=G.endsAt)timeUp()},1000);
 const humans=()=>G.seats.map((p,i)=>p&&!p.bot&&p.cid?i:-1).filter(i=>i>=0);
@@ -648,7 +705,9 @@ function readyHTML(){const[r,n]=cnt2(),over=S.phase==='over';
  ${readyList(false)}
  <div class="row">${B('unready','Not ready','ghost')}${mode==='host'?B('force','Start now'):''}${B('leave','Leave table','ghost')}</div></div>`}
 const contBtns=over=>{const fin=!over&&S.round>=4;const q=over?'Play another game?':fin?'That was the last hand. See the final scores?':'Continue to the next hand?';
- return ME<0?'<p class="hint dim">Waiting for the players…</p>':`<p class="how">${q}</p><div class="row">${B('cont',over?'Play again':fin?'See final scores':'Continue','win')}${B('leave','Leave','ghost')}</div>`};
+ return ME<0?'<p class="hint dim">Waiting for the players…</p>':`<p class="how">${q}</p><div class="row">${B('cont',over?'Play again':fin?'See final scores':'Continue','win')}${!over&&mode!=='guest'?endBtn():''}${B('leave','Leave','ghost')}</div>`};
+let endArm=false,endT=null;
+const endBtn=()=>`<button class="btn ghost endg${endArm?' armed':''}" type="button" data-a="endgame">${endArm?'Tap again to end the game':'End game'}</button>`;
 const GLAB={chow:'Chow',pong:'Pong',kong:'Kong',pair:'Pair',wonders:'13 wonders'};
 function groupsHTML(r){const gs=Array.isArray(r.groups)?r.groups.filter(g=>g&&Array.isArray(g.tiles)&&GLAB[g.type]):null;
  if(!gs||!gs.length){let hl=false;return`<div class="wh">${(r.melds||[]).map(meldHTML).join('')}${(r.hand||[]).map(c=>{const h=!hl&&c===r.t;if(h)hl=true;return tile(c,h?'hot':'')}).join('')}</div>`}
@@ -658,8 +717,8 @@ function groupsHTML(r){const gs=Array.isArray(r.groups)?r.groups.filter(g=>g&&Ar
 function modalHTML(){
  if(ME>=0&&rdy(ME)&&(S.phase==='end'||S.phase==='over'))return readyHTML();
  if(S.phase==='over'){const rk=S.seats.slice().sort((a,b)=>b.score-a.score);
-  const bust=S.timeUp?`<p class="how">⏱ Time’s up! The ${Number(S.timeLimit)||''}-minute limit ended the game.</p>`:'';
-  return`<div class="card"><h2>Game over: ${esc(rk[0].name)} takes it</h2>${bust}<ol class="rank">${rk.map(p=>`<li><span>${esc(p.name)}</span><b>${Number(p.score)||0}</b></li>`).join('')}</ol>${contBtns(true)}</div>`}
+  const bust=S.timeUp?`<p class="how">⏱ Time’s up! The ${Number(S.timeLimit)||''}-minute limit ended the game.</p>`:S.hostEnded?`<p class="how">${mode==='solo'?'You ended the game.':'The host ended the game.'} Here are the final scores.</p>`:'';
+  return`<div class="card"><h2>Game over: ${rk[0].name==='You'?'you win!':esc(rk[0].name)+' takes it'}</h2>${bust}<ol class="rank">${rk.map(p=>`<li><span>${esc(p.name)}</span><b>${Number(p.score)||0}</b></li>`).join('')}</ol>${contBtns(true)}</div>`}
  const r=S.result||{};
  if(r.draw)return`<div class="card"><h2>Draw game</h2><p class="how">The wall ran out. The same dealer deals again.</p>${contBtns(false)}</div>`;
  const W=S.seats[r.w]||{};let hl=false;
@@ -677,7 +736,7 @@ function draw(){if(!S)return;recvAt=Date.now();ME=S.seats.findIndex(p=>p&&p.cid=
   if(S.phase==='lobby'){g.innerHTML=waitHTML();md.hidden=true;return}
   const v=ME<0?0:ME,[b,r,t,l]=[0,1,2,3].map(i=>(v+i)%4);
   g.innerHTML=`<div class="felt real"><div class="opp top">${oppTop(t)}</div><div class="opp left">${oppSide(l)}</div><div class="center">${centerHTML(b,r,t,l)}</div><div class="opp right">${oppSide(r)}</div><div class="mine">${mineHTML(b)}</div></div>
-  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${B('leave','Leave table','ghost')}</div>`;
+  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${mode!=='guest'&&S.phase==='play'?endBtn():''}${B('leave','Leave table','ghost')}</div>`;
   if(S.phase==='end'||S.phase==='over'){md.innerHTML=modalHTML();md.hidden=false}else md.hidden=true;
   tick();countHand();applyGlow()
  }catch(e){g.innerHTML='<div class="card"><h2>Something went wrong</h2><p>The table sent a state this page could not read.</p>'+B('leave','Back','ghost')+'</div>'}}
@@ -689,6 +748,7 @@ function onClick(e){const tl=e.target.closest('.hand.live .t[data-i]');
  const btn=e.target.closest('[data-a]');if(!btn)return;const a=btn.dataset.a;
  if(a==='leave')return leave();
  if(a==='start'&&mode==='host'&&G&&G.phase==='lobby'&&allReady())return startGame();
+ if(a==='endgame'&&mode!=='guest'&&G){if(!endArm){endArm=true;draw();clearTimeout(endT);endT=setTimeout(()=>{endArm=false;if(S)draw()},4000);return}endArm=false;clearTimeout(endT);return endByHost()}
  if(a==='back')return send({k:'back'});
  if(a==='cont'||a==='ready')return send({k:'ready',v:true});
  if(a==='unready')return send({k:'ready',v:false});
