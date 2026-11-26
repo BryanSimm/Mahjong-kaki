@@ -223,6 +223,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 @keyframes glowp{to{box-shadow:0 0 0 3px rgba(255,213,74,.2),0 0 8px 2px rgba(255,213,74,.5)}}
 @media(prefers-reduced-motion:reduce){.t.glow{animation:none}}
 .btn.endg.armed{background:var(--red);color:#fff;box-shadow:0 4px 0 #8f1c22;opacity:1}
+.cont{display:grid;gap:6px}.contbtns{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.btn.danger{background:var(--red);color:#fff;box-shadow:0 4px 0 #8f1c22;opacity:1}.vic{font-size:14px}.vrow{align-items:center}
 .outinfo{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin:0;font-size:15px;background:rgba(255,213,74,.14);border:1px solid rgba(255,213,74,.45);border-radius:12px;padding:6px 12px;width:max-content;max-width:100%;margin-inline:auto}
 .outinfo b{color:#ffd54a;font-size:17px}
 </style>
@@ -240,6 +241,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
    <label for="tlIn">Game time limit <span class="opt">(minutes, for bot and online games)</span></label>
    <input id="tlIn" type="number" min="0" max="300" step="1" inputmode="numeric" placeholder="Leave empty for no limit">
    <button class="btn win" id="solo" type="button">Play with 3 bots</button>
+   <div id="contWrap" class="cont" hidden><div class="contbtns"><button class="btn" id="contb" type="button">▶ Continue last game</button><button class="btn ghost" id="delb" type="button">🗑 Delete saved game</button></div><p class="note" id="contInfo"></p></div>
    <div class="online">
     <button class="btn" id="hostb" type="button" disabled>Host an online table</button>
     <div class="join"><input id="code" maxlength="5" placeholder="Table code" autocapitalize="characters" aria-label="Table code"><button class="btn" id="joinb" type="button" disabled>Join</button></div>
@@ -533,7 +535,7 @@ const humans=()=>G.seats.map((p,i)=>p&&!p.bot&&p.cid?i:-1).filter(i=>i>=0);
 const allReady=()=>humans().every(i=>G.ready&&G.ready[i]);
 function proceed(){if(G.phase==='end')nextHand();else if(G.phase==='over')startGame()}
 function checkReady(){if((G.phase==='end'||G.phase==='over')&&allReady())proceed()}
-function quitSeat(s){const P=G.seats[s];if(!P||P.bot)return;if(G.ready)delete G.ready[s];
+function quitSeat(s){const P=G.seats[s];if(!P||P.bot)return;if(G.voice&&P.cid)delete G.voice[P.cid];if(G.ready)delete G.ready[s];
  if(G.phase==='lobby'){log(`${P.name} left`);G.seats[s]=null;return push()}
  P.bot=true;P.cid='';P.away=false;log(`${P.name} left: a bot takes over`);
  if(G.phase==='play'){if(G.sub==='discard'&&G.turn===s)later(700,()=>botTurn(s,false));
@@ -565,10 +567,11 @@ let myName='';try{myName=localStorage.getItem('mjname')||''}catch(e){}
 $('#nm').value=myName;
 const unwrap=m=>m&&typeof m==='object'&&'data'in m&&('from'in m||'topic'in m||'peer'in m||'sender'in m)?m.data:m;
 function pub(){const{wall,...rest}=G;return JSON.parse(JSON.stringify({...rest,wallN:wall?wall.length:0,left:G.deadline?Math.max(0,G.deadline-Date.now()):0,gameLeft:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,hid:HID}))}
-function push(){G.v++;const s=pub();if(mode==='host'&&R)try{R.emit('state',s)}catch(e){}if(s.v!==(S&&S.v))sel=null;S=s;draw()}
+function push(){G.v++;saveSolo();const s=pub();if(mode==='host'&&R)try{R.emit('state',s)}catch(e){}if(s.v!==(S&&S.v))sel=null;S=s;draw()}
 function hostIn(a){if(!a||typeof a!=='object'||!G)return;const cid=String(a.cid||'');
  if(a.k==='sit'){if(G.phase==='lobby'&&!G.seats.some(p=>p&&p.cid===cid)&&!(G.kicked||[]).includes(cid)){const i=G.seats.findIndex(p=>!p);if(i>=0){G.seats[i]=mkSeat(String(a.name||'').trim().slice(0,16)||'Player',cid,false);log(`${G.seats[i].name} sat down`)}}return push()}
  const s=G.seats.findIndex(p=>p&&p.cid===cid);if(s<0)return;
+ if(a.k==='voice'){G.voice=G.voice||{};if(a.on)G.voice[cid]={pid:String(a.pid||'').slice(0,64),mute:!!a.mute};else delete G.voice[cid];return push()}
  if(a.k==='ready'&&['lobby','end','over'].includes(G.phase)){G.ready=G.ready||{};G.ready[s]=!!a.v;push();return checkReady()}
  if(a.k==='quit')return quitSeat(s);
  if(G.phase!=='play')return;
@@ -595,9 +598,9 @@ async function joinTable(){const code=$('#code').value.trim().toUpperCase();if(!
  R.on('closed',()=>{if(mode==='guest'&&S&&S.phase!=='closed'){S={...S,phase:'closed'};draw()}});
  ping();timers.push(setInterval(()=>{ping();if(S&&S.phase!=='closed'&&Date.now()-lastSeen>16000)banner('Lost contact with the host…',true)},2500));
  $('#home').hidden=true;$('#game').hidden=false;$('#game').innerHTML=`<div class="card"><h2>Joining ${esc(code)}…</h2><p>Waiting for the host's table to answer. Check the code if this takes long.</p>${B('leave','Back','ghost')}</div>`}
-function leave(){const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
+function leave(){leaveVoice(true);const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
  setTimeout(()=>{try{r&&r.leave&&r.leave()}catch(e){}},500);mode=null;tableCode=null;lobbyPresence();clearTimeout(tm);timers.forEach(clearInterval);timers=[];R=null;G=null;S=null;
- $('#game').hidden=true;$('#modal').hidden=true;$('#banner').hidden=true;$('#home').hidden=false}
+ showContinue();$('#game').hidden=true;$('#modal').hidden=true;$('#banner').hidden=true;$('#home').hidden=false}
 function banner(t,stay){const b=$('#banner');b.textContent=t;b.hidden=false;if(!stay)setTimeout(()=>b.hidden=true,3000)}
 /* ---------- online play over PeerJS (no account needed) ---------- */
 let tableCode=null,prof=null,meP=null;const lobbyPresence=()=>{},countHand=()=>{};
@@ -617,7 +620,8 @@ function hostRoom(code){return new Promise((res,rej)=>{if(!window.Peer)return re
  const fire=(topic,data,conn)=>(hs[topic]||[]).forEach(f=>f({topic,data,peer:conn&&conn.peer}));
  peer.on('open',()=>{done=true;res({emit:async(topic,data)=>{for(const c of conns)if(c.open)try{c.send({topic,data})}catch(e){}},
   on:(t,f)=>{(hs[t]=hs[t]||[]).push(f);return()=>{}},
-  leave:async()=>{setTimeout(()=>peer.destroy(),300)}})});
+  leave:async()=>{setTimeout(()=>peer.destroy(),300)},peer})});
+ peer.on('call',call=>onIncomingCall(call));
  peer.on('connection',c=>{c.on('open',()=>{conns.add(c);fire('hello',null,c)});
   c.on('data',m=>{if(!m||typeof m!=='object')return;if(m.topic==='act'&&m.data&&typeof m.data==='object'){if(m.data.cid)byConn.set(c,String(m.data.cid));fire('act',m.data,c)}});
   c.on('close',()=>{conns.delete(c);const cid=byConn.get(c);if(cid)fire('gone',{cid},c)});c.on('error',()=>{})});
@@ -625,12 +629,13 @@ function hostRoom(code){return new Promise((res,rej)=>{if(!window.Peer)return re
  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}})})}
 function joinRoom(code){return new Promise((res,rej)=>{if(!window.Peer)return rej('nopeer');
  const peer=new Peer(PEERCFG),hs={};let conn=null,done=false;
+ peer.on('call',call=>onIncomingCall(call));
  const fail=t=>{if(!done){done=true;peer.destroy();rej(t)}};
  const to=setTimeout(()=>fail('timeout'),25000);
  peer.on('open',()=>{conn=peer.connect(pid(code),{reliable:true});
   conn.on('open',()=>{clearTimeout(to);done=true;res({emit:async(topic,data)=>{if(conn.open)try{conn.send({topic,data})}catch(e){}},
    on:(t,f)=>{(hs[t]=hs[t]||[]).push(f);return()=>{}},
-   leave:async()=>{setTimeout(()=>peer.destroy(),300)}})});
+   leave:async()=>{setTimeout(()=>peer.destroy(),300)},peer})});
   conn.on('data',m=>{if(m&&typeof m==='object'&&typeof m.topic==='string')(hs[m.topic]||[]).forEach(f=>f({topic:m.topic,data:m.data}))});
   conn.on('close',()=>(hs.closed||[]).forEach(f=>f({topic:'closed',data:null})))});
  peer.on('error',e=>fail(e&&e.type==='peer-unavailable'?'notfound':(e&&e.type)||'error'))})}
@@ -639,12 +644,47 @@ function setOnline(ok){$('#hostb').disabled=!ok;$('#joinb').disabled=!ok;
 {let n=0;const t=setInterval(()=>{if(window.Peer||++n>60){clearInterval(t);setOnline(!!window.Peer)}},100)}
 {const h=location.hash.slice(1).toUpperCase();if(/^[A-Z]{5}$/.test(h)){$('#code').value=h;$('#onote').dataset.inv=1}}
 
+/* ---------- voice chat (WebRTC audio, mesh between players at the table) ---------- */
+let vStream=null,vMuted=false,vCalls={},vAudio={};
+const vOK=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+function onIncomingCall(call){if(!vStream){try{call.close()}catch(e){}return}try{call.answer(vStream)}catch(e){return}attachCall(call)}
+function attachCall(call){const id=call.peer;if(vCalls[id]&&vCalls[id]!==call){try{vCalls[id].close()}catch(e){}}vCalls[id]=call;
+ call.on('stream',st=>{let a=vAudio[id];if(!a){a=document.createElement('audio');a.autoplay=true;a.setAttribute('playsinline','');a.hidden=true;document.body.appendChild(a);vAudio[id]=a}a.srcObject=st;a.play().catch(()=>{})});
+ const gone=()=>{if(vCalls[id]===call)delete vCalls[id];if(vAudio[id]){vAudio[id].remove();delete vAudio[id]}};call.on('close',gone);call.on('error',gone)}
+async function joinVoice(){if(!R||!R.peer)return banner('Voice chat works at online tables');if(!vOK())return banner('This browser can’t use a microphone here');
+ try{vStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false})}catch(e){vStream=null;return banner('Microphone blocked. Allow mic access for this site to use voice chat.')}
+ vMuted=false;send({k:'voice',on:true,pid:R.peer.id,mute:false});draw();syncVoice()}
+function leaveVoice(silent){for(const id in vCalls){try{vCalls[id].close()}catch(e){}}vCalls={};for(const id in vAudio)vAudio[id].remove();vAudio={};
+ if(vStream){vStream.getTracks().forEach(t=>t.stop());vStream=null}if(!silent&&R)send({k:'voice',on:false});if(S&&!silent)draw()}
+function toggleMute(){if(!vStream)return;vMuted=!vMuted;vStream.getAudioTracks().forEach(t=>t.enabled=!vMuted);send({k:'voice',on:true,pid:R&&R.peer?R.peer.id:'',mute:vMuted});draw()}
+function syncVoice(){if(!vStream||!S||!R||!R.peer)return;const me=R.peer.id;
+ const others=Object.values(S.voice||{}).map(v=>v&&v.pid).filter(p=>typeof p==='string'&&p&&p!==me);
+ for(const id of others)if(!vCalls[id]&&me<id){try{const c=R.peer.call(id,vStream);if(c)attachCall(c)}catch(e){}}
+ for(const id in vCalls)if(!others.includes(id)){try{vCalls[id].close()}catch(e){}}}
+const inVoice=P=>P&&P.cid&&S.voice&&S.voice[P.cid];
+function voiceBar(){if(mode!=='host'&&mode!=='guest')return'';if(!vStream)return B('vjoin','🎤 Join voice');
+ return B('vmute',vMuted?'🔇 Unmute':'🎙️ Mute',vMuted?'':'win')+B('vleave','Leave voice','ghost')}
+
+/* ---------- save & continue (bot games only, stored on this device) ---------- */
+const SAVE_KEY='laimj_save_v1';
+function saveSolo(){if(mode!=='solo'||!G)return;try{if(G.phase==='over'){localStorage.removeItem(SAVE_KEY);return}
+ localStorage.setItem(SAVE_KEY,JSON.stringify({...G,gameLeftSaved:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,savedAt:Date.now()}))}catch(e){}}
+function readSave(){try{const g=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return g&&Array.isArray(g.seats)&&g.seats.length===4&&g.seats.every(p=>p&&Array.isArray(p.hand))&&Array.isArray(g.wall)?g:null}catch(e){return null}}
+function showContinue(){const g=readSave(),w=$('#contWrap');if(!g){w.hidden=true;return}
+ const me=g.seats.find(p=>!p.bot)||g.seats[0],mins=Math.max(0,Math.round((Date.now()-(g.savedAt||0))/60000));
+ $('#contInfo').textContent=`Hand ${Number(g.handNo)||1} · ${['East','South','West','North'][g.round]||'East'} round · your score ${Number(me.score)||0} · saved ${mins<1?'just now':mins<60?mins+' min ago':Math.round(mins/60)+' h ago'}${g.timeLimit?` · ${Math.ceil((g.gameLeftSaved||0)/60000)} min left`:''}. Starting a new bot game replaces it.`;w.hidden=false}
+function loadSolo(){const g=readSave();if(!g)return banner('No saved game found');mode='solo';G=g;
+ const h=G.seats.findIndex(p=>!p.bot);if(h>=0){G.seats[h].cid=myCid;G.seats[h].away=false;G.seats[h].miss=0}
+ G.endsAt=G.timeLimit?Date.now()+Math.max(1000,G.gameLeftSaved||0):0;delete G.gameLeftSaved;delete G.savedAt;
+ log('Game loaded. Welcome back!');
+ if(G.phase==='play'){if(G.sub==='claim'&&G.claims&&G.last){for(const q in G.claims)if(G.seats[q].bot&&!(q in G.resp))G.resp[q]=botClaim(+q,G.last.t,G.claims[q]);G.deadline=Date.now()+12000;later(12000,resolve);push()}else enterDiscard()}else push()}
+
 /* ---------- rendering ---------- */
 const B=(a,txt,cls='')=>`<button class="btn ${cls}" type="button" data-a="${esc(a)}">${esc(txt)}</button>`;
 const hostBtn=(a,t)=>mode!=='guest'?B(a,t,'win'):'<p class="hint dim">Waiting for the host…</p>';
 const meldHTML=m=>`<span class="meld">${(m.tiles||[]).map((c,i)=>m.concealed&&(i===0||i===3)?'<span class="t back s"></span>':tile(c,'s')).join('')}</span>`;
 function whoHTML(s){const P=S.seats[s],w=(s-S.dealer+4)%4;
- return`<div class="who${S.phase==='play'&&S.turn===s?' on':''}"><b class="wd" title="Seat wind">${WCH[w]}</b><span class="nm">${esc(P.name)}${s===ME&&P.name!=='You'?' (you)':''}</span>${s===S.dealer?'<span class="tag">Dealer</span>':''}${P.bot?'<span class="tag">Bot</span>':P.away?'<span class="tag">Away</span>':''}<span class="pts">${Number(P.score)||0}</span></div>`}
+ return`<div class="who${S.phase==='play'&&S.turn===s?' on':''}"><b class="wd" title="Seat wind">${WCH[w]}</b><span class="nm">${esc(P.name)}${s===ME&&P.name!=='You'?' (you)':''}</span>${inVoice(P)?`<span class="vic" title="In voice chat">${S.voice[P.cid].mute?'🔇':'🔊'}</span>`:''}${s===S.dealer?'<span class="tag">Dealer</span>':''}${P.bot?'<span class="tag">Bot</span>':P.away?'<span class="tag">Away</span>':''}<span class="pts">${Number(P.score)||0}</span></div>`}
 function pondHTML(s){const d=S.seats[s].discards,n=d.length,hot=S.sub==='claim'&&S.last&&S.last.from===s;return`<div class="pond">${d.map((c,i)=>tile(c,'s'+(hot&&i===n-1?' hot':''))).join('')}</div>`}
 const extras=P=>P.melds.map(meldHTML).join('')+P.bonus.map(c=>tile(c,'s')).join('');
 function seatHTML(s){const P=S.seats[s];return whoHTML(s)+`<div class="tiles"><span class="t back s"></span><span class="x">×${P.hand.length}</span>${extras(P)}</div>`+pondHTML(s)}
@@ -695,7 +735,7 @@ const sReady=()=>S.seats.every((p,i)=>!p||p.bot||!p.cid||rdy(i));
 function readyList(lobby){return`<ul class="rdy">${S.seats.map((p,i)=>{
  if(!p)return`<li><span class="ini mute">${WCH[i]}</span><span class="rn dim">${lobby?'Empty: a bot will sit here':'Empty seat'}</span></li>`;
  const st=p.bot?'bot':rdy(i)?'yes':'no';
- return`<li><span class="ini">${esc((p.name||'?').trim().charAt(0).toUpperCase()||'?')}</span><span class="rn">${esc(p.name)}${p.cid===myCid&&p.name!=='You'?' (you)':''}${lobby&&i===0?' · host':''}</span><span class="rs ${st}">${st==='bot'?'Bot':st==='yes'?'✓ Ready':'Not ready'}</span>${lobby&&mode==='host'&&i>0?`<button class="btn ghost sm" type="button" data-a="kick:${i}" aria-label="Remove ${esc(p.name)}">✕</button>`:''}</li>`}).join('')}</ul>`}
+ return`<li><span class="ini">${esc((p.name||'?').trim().charAt(0).toUpperCase()||'?')}</span><span class="rn">${esc(p.name)}${p.cid===myCid&&p.name!=='You'?' (you)':''}${lobby&&i===0?' · host':''}${inVoice(p)?(S.voice[p.cid].mute?' 🔇':' 🔊'):''}</span><span class="rs ${st}">${st==='bot'?'Bot':st==='yes'?'✓ Ready':'Not ready'}</span>${lobby&&mode==='host'&&i>0?`<button class="btn ghost sm" type="button" data-a="kick:${i}" aria-label="Remove ${esc(p.name)}">✕</button>`:''}</li>`}).join('')}</ul>`}
 const cnt2=()=>{const h=S.seats.filter(p=>p&&!p.bot&&p.cid);return[h.filter(p=>rdy(S.seats.indexOf(p))).length,h.length]};
 function waitHTML(){const[r,n]=cnt2(),all=sReady();
  if((S.kicked||[]).includes(myCid))return`<div class="card"><h2>You were removed from this table</h2>${B('leave','Back','ghost')}</div>`;
@@ -704,7 +744,7 @@ function waitHTML(){const[r,n]=cnt2(),all=sReady();
  <p class="how"><b>${r} of ${n}</b> players ready.</p>
  <div class="lpts"><span>Game time limit</span>${mode==='host'?`<input id="tlLobby" class="tlin" type="number" min="0" max="300" step="1" inputmode="numeric" placeholder="No limit" value="${S.timeLimit?Number(S.timeLimit):''}" aria-label="Game time limit in minutes"><span class="dim">min</span>`:`<b>${S.timeLimit?Number(S.timeLimit)+' min':'No limit'}</b>`}</div>
  ${readyList(true)}
- <div class="row">${mode==='host'?`<button class="btn win" type="button" data-a="start"${all?'':' disabled'}>${all?'Start game':'Waiting for players…'}</button>`+B('copylink','Copy invite link')+B('copy','Copy code'):ME>=0?(rdy(ME)?B('unready','Not ready','ghost'):B('ready','I’m ready','win')):''}${B('leave','Leave','ghost')}</div></div>`}
+ <div class="row">${mode==='host'?`<button class="btn win" type="button" data-a="start"${all?'':' disabled'}>${all?'Start game':'Waiting for players…'}</button>`+B('copylink','Copy invite link')+B('copy','Copy code'):ME>=0?(rdy(ME)?B('unready','Not ready','ghost'):B('ready','I’m ready','win')):''}${B('leave','Leave','ghost')}</div><div class="row vrow">${voiceBar()}<span class="hint dim">Voice chat: talk while you play. Everyone taps Join voice.</span></div></div>`}
 function readyHTML(){const[r,n]=cnt2(),over=S.phase==='over';
  return`<div class="card"><h2>${over?'New game':'Next hand'}: who’s in?</h2><p class="how"><b>${r} of ${n}</b> players ready. ${over?'A new game':'The next hand'} starts when everyone is ready.</p>
  ${readyList(false)}
@@ -734,14 +774,14 @@ function modalHTML(){
  <table><tbody>${(r.items||[]).map(([n,v])=>`<tr><td>${esc(n)}</td><td>${Number(v)}</td></tr>`).join('')}<tr class="tot"><td>Total (capped at 5)</td><td>${Number(r.tai)}</td></tr></tbody></table>
  <ul class="pay">${S.seats.map((p,i)=>{const d=Number((r.delta||[])[i])||0;return`<li><span>${esc(p.name)}</span><b class="${d>=0?'up':'dn'}">${d>0?'+':''}${d}</b></li>`}).join('')}</ul>
  ${contBtns(false)}</div>`}
-function draw(){if(!S)return;recvAt=Date.now();ME=S.seats.findIndex(p=>p&&p.cid===myCid);
+function draw(){if(!S)return;setTimeout(syncVoice,0);recvAt=Date.now();ME=S.seats.findIndex(p=>p&&p.cid===myCid);
  $('#home').hidden=true;const g=$('#game');g.hidden=false;const md=$('#modal');
  try{
   if(S.phase==='closed'){g.innerHTML=`<div class="card"><h2>The host closed this table</h2><p class="how">Thanks for playing!</p>${B('leave','Back','ghost')}</div>`;md.hidden=true;return}
   if(S.phase==='lobby'){g.innerHTML=waitHTML();md.hidden=true;return}
   const v=ME<0?0:ME,[b,r,t,l]=[0,1,2,3].map(i=>(v+i)%4);
   g.innerHTML=`<div class="felt real"><div class="opp top">${oppTop(t)}</div><div class="opp left">${oppSide(l)}</div><div class="center">${centerHTML(b,r,t,l)}</div><div class="opp right">${oppSide(r)}</div><div class="mine">${mineHTML(b)}</div></div>
-  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${mode!=='guest'&&S.phase==='play'?endBtn():''}${B('leave','Leave table','ghost')}</div>`;
+  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${voiceBar()}${mode!=='guest'&&S.phase==='play'?endBtn():''}${B('leave','Leave table','ghost')}</div>`;
   if(S.phase==='end'||S.phase==='over'){md.innerHTML=modalHTML();md.hidden=false}else md.hidden=true;
   tick();countHand();applyGlow()
  }catch(e){g.innerHTML='<div class="card"><h2>Something went wrong</h2><p>The table sent a state this page could not read.</p>'+B('leave','Back','ghost')+'</div>'}}
@@ -754,6 +794,9 @@ function onClick(e){const tl=e.target.closest('.hand.live .t[data-i]');
  if(a==='leave')return leave();
  if(a==='start'&&mode==='host'&&G&&G.phase==='lobby'&&allReady())return startGame();
  if(a==='endgame'&&mode!=='guest'&&G){if(!endArm){endArm=true;draw();clearTimeout(endT);endT=setTimeout(()=>{endArm=false;if(S)draw()},4000);return}endArm=false;clearTimeout(endT);return endByHost()}
+ if(a==='vjoin')return joinVoice();
+ if(a==='vmute')return toggleMute();
+ if(a==='vleave')return leaveVoice(false);
  if(a==='back')return send({k:'back'});
  if(a==='cont'||a==='ready')return send({k:'ready',v:true});
  if(a==='unready')return send({k:'ready',v:false});
@@ -770,6 +813,10 @@ function onClick(e){const tl=e.target.closest('.hand.live .t[data-i]');
 $('#game').addEventListener('click',onClick);$('#modal').addEventListener('click',onClick);
 $('#game').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest('.t[data-i]')){e.preventDefault();onClick(e)}});
 $('#solo').addEventListener('click',solo);
+$('#contb').addEventListener('click',loadSolo);showContinue();
+{let arm=false,t=null;$('#delb').addEventListener('click',()=>{const b=$('#delb');
+ if(!arm){arm=true;b.textContent='Tap again to delete';b.classList.add('danger');clearTimeout(t);t=setTimeout(()=>{arm=false;b.textContent='🗑 Delete saved game';b.classList.remove('danger')},4000);return}
+ arm=false;clearTimeout(t);try{localStorage.removeItem(SAVE_KEY)}catch(e){}b.textContent='🗑 Delete saved game';b.classList.remove('danger');showContinue();banner('Saved game deleted')})}
 try{const v=localStorage.getItem('mjtl');if(v&&cleanTL(v))$('#tlIn').value=cleanTL(v)}catch(e){}
 $('#tlIn').addEventListener('change',()=>{const v=pickedTL();$('#tlIn').value=v||'';try{localStorage.setItem('mjtl',v)}catch(e){}});
 $('#game').addEventListener('change',e=>{if(e.target.id==='tlLobby'&&mode==='host'&&G&&G.phase==='lobby'){G.timeLimit=cleanTL(e.target.value);try{localStorage.setItem('mjtl',G.timeLimit)}catch(e){}push()}});
