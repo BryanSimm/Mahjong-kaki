@@ -308,7 +308,8 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
    <div id="rulesEx"></div>
    <p>Payouts (capped at 5 tai):</p>
    <table class="payt"><thead><tr><th>Tai</th><th>Shooter pays</th><th>Others pay</th><th>Self-drawn: each pays</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>1</td><td>2</td></tr><tr><td>2</td><td>3</td><td>2</td><td>3</td></tr><tr><td>3</td><td>5</td><td>3</td><td>5</td></tr><tr><td>4</td><td>7</td><td>5</td><td>7</td></tr><tr><td>5</td><td>20</td><td>10</td><td>20</td></tr></tbody></table>
-   <p>Off a discard, the shooter pays the bigger amount and the other two pay the smaller one. Self-drawn (自摸) adds 1 tai, then all three pay the shooter amount. Instant "bites": cat + mouse or rooster + centipede, everyone pays 1; exposed kong, everyone pays 1; concealed kong, everyone pays 2.</p>
+   <p><b>Ping hu pays its own amount:</b> off a discard the shooter pays <b>10</b> and the others pay <b>5</b>; self-drawn, all three pay <b>12</b>.</p>
+   <p>Off a discard, the shooter pays the bigger amount and the other two pay the smaller one. Self-drawn (自摸) adds 1 tai (not for ping hu), then all three pay the shooter amount. Instant "bites": cat + mouse or rooster + centipede, everyone pays 1; exposed kong, everyone pays 1; concealed kong, everyone pays 2.</p>
    <p>Everyone starts at 0 points. The game ends after four wind rounds, or when the game time limit (if you set one) runs out. The dealer keeps the deal after winning or a drawn hand.</p>
   </details>
  </section>
@@ -459,7 +460,7 @@ $('#fan').innerHTML=['ZR','A1','D5','XE','B7','C8','ZG'].map((c,i)=>tile(c).repl
  ['Each animal','1 tai each',[['A1','A2'],['A3','A4']],'Cat + mouse or rooster + centipede also bite: everyone pays 1'],
  ['All pongs','2 tai',[['B2','B2','B2'],['D7','D7','D7'],['C9','C9','C9'],['XS','XS','XS'],['D1','D1']],'Every set is a pong or kong, no chows'],
  ['Half colour (one suit + honours)','2 tai',[['C1','C2','C3'],['C5','C5','C5'],['C7','C8','C9'],['ZG','ZG','ZG'],['XN','XN']],'Only 萬 plus winds/dragons'],
- ['Ping hu (all chows, no bonus tiles, two-sided wait)','4 tai',[['C2','C3','C4'],['D4','D5','D6'],['B6','B7','B8'],['C6','C7','C8'],['D9','D9']],'Win on a tile that finishes a chow at either end, e.g. waiting on 2 or 5 with 3-4'],
+ ['Ping hu (all chows, no bonus tiles, two-sided wait)','shooter 10 · others 5 · 自摸 12 each',[['C2','C3','C4'],['D4','D5','D6'],['B6','B7','B8'],['C6','C7','C8'],['D9','D9']],'Win on a tile that finishes a chow at either end, e.g. waiting on 2 or 5 with 3-4'],
  ['Full colour (one suit)','4 tai',[['B1','B2','B3'],['B4','B4','B4'],['B5','B6','B7'],['B9','B9','B9'],['B8','B8']],'Every tile is bamboo: no honours at all'],
  ['Thirteen wonders','5 tai (limit)',[['C1','C9','D1','D9','B1','B9','XE','XS','XW','XN','ZR','ZG','ZW','ZW']],'Every 1 and 9, every wind and dragon, plus one duplicate'],
  ['Three great scholars','5 tai (limit)',[['ZR','ZR','ZR'],['ZG','ZG','ZG'],['ZW','ZW','ZW'],['C4','C5','C6'],['D2','D2']],'Pongs of all three dragons'],
@@ -509,7 +510,8 @@ const middleOnly=(tiles,wt)=>{if(!wt||!isNum(wt))return false;const ds=decomps(t
 const winScore=(s,tiles,wt,self)=>{if(tiles.length%3!==2)return null;const r=score(s,tiles,wt);if(!r)return null;
  let items=r.items.slice(),raw=items.reduce((a,b)=>a+b[1],0);
  if(r.tai<1){if(!self&&middleOnly(tiles,wt))return null;items=[['No tai (counts as 1 tai)',1]];raw=1}
- if(self&&r.tai<5){items.push(['Self-drawn (自摸)',1]);raw+=1}
+ const ph=items.some(x=>x[0]==='Ping hu');
+ if(self&&r.tai<5&&!ph){items.push(['Self-drawn (自摸)',1]);raw+=1}
  return{...r,items,tai:Math.min(5,Math.max(r.tai,raw))}};
 const mkSeat=(name,cid,bot)=>({name,cid,bot,hand:[],melds:[],bonus:[],discards:[],score:0,away:false,miss:0});
 const log=m=>{G.log.push(m);if(G.log.length>40)G.log.shift()};
@@ -611,9 +613,10 @@ function act(s,a){if(!G||G.phase!=='play')return;const P=G.seats[s];
   const ok=a.k==='pass'||(a.k==='hu'&&o.hu)||(a.k==='pong'&&o.pong)||(a.k==='kong'&&o.kong)||(a.k==='chow'&&Array.isArray(a.c)&&o.chows.some(c=>c.join()===a.c.join()));
   if(!ok)return;G.resp[s]=a.k==='chow'?{k:'chow',c:o.chows.find(c=>c.join()===a.c.join())}:{k:a.k};
   if(Object.keys(G.claims).every(q=>q in G.resp))return resolve();push()}}
-/* Payout table by tai: [shooter pays, each other player pays]. Self-draw: everyone pays the shooter amount. */
+/* Payout table by tai: [shooter pays, each other player pays]. Self-draw: everyone pays the shooter amount.
+   Ping hu has its own payout: off a discard shooter 10, others 5; self-drawn everyone pays 12 (no extra self-draw tai). */
 const PAYT={1:[2,1],2:[3,2],3:[5,3],4:[7,5],5:[20,10]};
-function settle(w,self,from,t){clearTimeout(tm);const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},pt=PAYT[Math.max(1,Math.min(5,sc.tai))],before=G.seats.map(x=>x.score);
+function settle(w,self,from,t){clearTimeout(tm);const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},pt=sc.tai<5&&(sc.items||[]).some(x=>x[0]==='Ping hu')?(self?[12,12]:[10,5]):PAYT[Math.max(1,Math.min(5,sc.tai))],before=G.seats.map(x=>x.score);
  if(self)payAll(w,pt[0]);else for(let i=0;i<4;i++)if(i!==w)pay(i,w,i===from?pt[0]:pt[1]);
  G.result={w,self,from,t,tai:sc.tai,items:sc.items,groups:sc.groups||null,delta:G.seats.map((x,i)=>x.score-before[i]),hand:sortT(P.hand.slice()),melds:P.melds,bonus:P.bonus};
  log(`${P.name} wins with ${sc.tai} tai!`);G.phase='end';G.sub=null;G.claims=null;
