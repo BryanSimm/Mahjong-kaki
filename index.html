@@ -229,13 +229,16 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 .dicecard{width:min(640px,100%)}
 .dlist li{flex-wrap:wrap}.dz{display:inline-flex;align-items:center;gap:6px;margin-left:auto}.dz b{font-size:20px;min-width:28px;text-align:right}
 .die{width:34px;height:34px;animation:dieIn .45s ease-out}@keyframes dieIn{0%{transform:rotate(-200deg) scale(.4);opacity:0}100%{transform:none;opacity:1}}
-@media(prefers-reduced-motion:reduce){.die{animation:none}}
+@media(prefers-reduced-motion:reduce){.die,.seatb.taken{animation:none}}
 .rk{font-weight:800;color:#8a6a1c;min-width:30px;text-align:center}
 .turnrow{box-shadow:inset 0 0 0 3px var(--red)}
 .pickh{margin:4px 0 0;font-size:18px}
 .card .clock{color:var(--red)}
 .seatpick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .seatb{display:grid;justify-items:center;gap:2px;padding:12px 6px;border:0;border-radius:14px;background:#fff;box-shadow:0 4px 0 var(--jade);cursor:pointer;font:600 15px Figtree,sans-serif;color:#1b2a24;min-height:44px}
+.seatb.blk:not(.taken){background:linear-gradient(#34b894,#167459);color:#fff;box-shadow:0 5px 0 #e9dfc6,0 8px 12px rgba(0,0,0,.25)}
+.seatb.blk:not(.taken) small{color:#e9f7f0}.bkface{font:900 30px Figtree,sans-serif;line-height:1.2}
+.seatb.taken{animation:flip .4s ease-out}@keyframes flip{0%{transform:rotateY(90deg)}100%{transform:none}}
 .seatb .sw{font:900 30px 'Noto Serif TC',serif;color:#1d2a5a}.seatb small{font-size:12px;color:#5b6a62;text-align:center}
 .seatb:disabled{cursor:default}.seatb.taken{background:#e8f2ea;box-shadow:0 2px 0 #b9d6c4}.seatb:not(.taken):disabled{opacity:.6}
 .seatb:not(:disabled):hover{transform:translateY(-2px)}
@@ -484,16 +487,17 @@ const dsum=d=>(d||[]).reduce((a,b)=>a+b,0);
 function beginDice(){clearTimeout(tm);Object.assign(G,{phase:'dice',dice:{},order:null,picks:{},pickIdx:0,ready:{},deadline:Date.now()+20000});G.log=[];log('Roll the dice to choose seats');push();diceDrive()}
 function roll(i){if(G.phase!=='dice'||G.dice[i])return;G.dice[i]=rd3();log(`${G.seats[i].name} rolls ${G.dice[i].join(' + ')} = ${dsum(G.dice[i])}`);push();diceDrive()}
 function orderPicks(){if(G.phase!=='dice')return;const tb=[0,1,2,3].map(()=>Math.random());G.order=[0,1,2,3].sort((a,b)=>dsum(G.dice[b])-dsum(G.dice[a])||tb[a]-tb[b]);
- Object.assign(G,{phase:'pick',pickIdx:0,picks:{},deadline:Date.now()+20000});log(`${G.seats[G.order[0]].name} rolled highest and picks first`);push();diceDrive()}
-const freeWinds=()=>[0,1,2,3].filter(w=>G.picks[w]===undefined);
-function choose(i,w){if(G.phase!=='pick'||G.order[G.pickIdx]!==i||!(w>=0&&w<=3)||G.picks[w]!==undefined)return;G.picks[w]=i;log(`${G.seats[i].name} sits ${['East','South','West','North'][w]}${w===0?' (dealer)':''}`);
+ const sh=[0,1,2,3];{const r=new Uint32Array(4);crypto.getRandomValues(r);for(let k=3;k>0;k--){const j=r[k]%(k+1);[sh[k],sh[j]]=[sh[j],sh[k]]}}
+ Object.assign(G,{phase:'pick',pickIdx:0,picks:{},blocks:{},hidden:sh,deadline:Date.now()+20000});log(`${G.seats[G.order[0]].name} rolled highest and draws a seat first`);push();diceDrive()}
+const freeBlocks=()=>[0,1,2,3].filter(b=>G.blocks[b]===undefined);
+function choose(i,b){if(G.phase!=='pick'||G.order[G.pickIdx]!==i||!(b>=0&&b<=3)||G.blocks[b]!==undefined)return;const w=G.hidden[b];G.blocks[b]=i;G.picks[w]=i;log(`${G.seats[i].name} draws ${['East','South','West','North'][w]}${w===0?' (dealer)':''}`);
  G.pickIdx++;G.deadline=Date.now()+20000;push();diceDrive()}
 function diceDrive(){clearTimeout(tm);if(!G)return;
  if(G.phase==='dice'){const left=[0,1,2,3].filter(i=>!G.dice[i]);if(!left.length)return later(1600,orderPicks);
   const b=left.find(i=>G.seats[i].bot||G.seats[i].away);if(b!==undefined)return later(650,()=>roll(b));
   return later(Math.max(0,G.deadline-Date.now()),()=>{for(const i of left)if(!G.dice[i])G.dice[i]=rd3();log('Time’s up: dice rolled automatically');push();diceDrive()})}
  if(G.phase==='pick'){if(G.pickIdx>=4)return later(1000,finalizeSeats);const i=G.order[G.pickIdx],P=G.seats[i];
-  return later(P.bot||P.away?900:Math.max(0,G.deadline-Date.now()),()=>choose(i,freeWinds()[0]))}}
+  return later(P.bot||P.away?1100:Math.max(0,G.deadline-Date.now()),()=>{const f=freeBlocks();choose(i,f[Math.random()*f.length|0])})}}
 function finalizeSeats(){if(G.phase!=='pick')return;G.seats=[0,1,2,3].map(w=>G.seats[G.picks[w]]);G.ready={};
  for(const p of G.seats)p.score=0;Object.assign(G,{dealer:0,round:0,moves:0,handNo:0,timeUp:false,hostEnded:false,endsAt:G.timeLimit?Date.now()+G.timeLimit*60000:0});startHand()}
 function startHand(){clearTimeout(tm);G.ready={};G.wall=newWall();G.handNo++;G.result=null;G.log=[];
@@ -599,7 +603,7 @@ if(!myCid){myCid=Math.random().toString(36).slice(2,10);try{sessionStorage.setIt
 let myName='';try{myName=localStorage.getItem('mjname')||''}catch(e){}
 $('#nm').value=myName;
 const unwrap=m=>m&&typeof m==='object'&&'data'in m&&('from'in m||'topic'in m||'peer'in m||'sender'in m)?m.data:m;
-function pub(){const{wall,...rest}=G;return JSON.parse(JSON.stringify({...rest,wallN:wall?wall.length:0,left:G.deadline?Math.max(0,G.deadline-Date.now()):0,gameLeft:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,hid:HID}))}
+function pub(){const{wall,hidden,...rest}=G;const shown=Array.isArray(hidden)?hidden.map((w,b)=>G.blocks&&G.blocks[b]!==undefined?w:-1):null;return JSON.parse(JSON.stringify({...rest,hidden:shown,wallN:wall?wall.length:0,left:G.deadline?Math.max(0,G.deadline-Date.now()):0,gameLeft:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,hid:HID}))}
 function push(){G.v++;saveSolo();const s=pub();if(mode==='host'&&R)try{R.emit('state',s)}catch(e){}if(s.v!==(S&&S.v))sel=null;S=s;draw()}
 function hostIn(a){if(!a||typeof a!=='object'||!G)return;const cid=String(a.cid||'');
  if(a.k==='sit'){if(G.phase==='lobby'&&!G.seats.some(p=>p&&p.cid===cid)&&!(G.kicked||[]).includes(cid)){const i=G.seats.findIndex(p=>!p);if(i>=0){G.seats[i]=mkSeat(String(a.name||'').trim().slice(0,16)||'Player',cid,false);log(`${G.seats[i].name} sat down`)}}return push()}
@@ -732,10 +736,11 @@ function diceHTML(){const WN=['East','South','West','North'],roll=S.phase==='dic
   return`<li class="${!roll&&order&&order[S.pickIdx]===i?'turnrow':''}"><span class="ini">${esc((p.name||'?').trim().charAt(0).toUpperCase()||'?')}</span><span class="rn">${esc(p.name)}${p.cid===myCid&&p.name!=='You'?' (you)':''}${p.bot?' <span class="dim">· bot</span>':''}</span>
   <span class="dz">${d?d.map(dieSVG).join('')+`<b>${dsum(d)}</b>`:(i===ME&&roll?B('roll','🎲 Roll','win'):'<span class="dim">rolling…</span>')}</span>${rank?`<span class="rk">#${rank}</span>`:''}${sat!==undefined?`<span class="rs yes">${WCH[sat]} ${WN[sat]}</span>`:''}</li>`}).join('');
  let pick='';if(!roll&&order){const cur=order[S.pickIdx],mine=cur===ME&&cur!==undefined;
-  pick=`<h3 class="pickh">${S.pickIdx>=4?'Seats are set. Starting the game…':mine?'Your turn: choose a seat':esc((S.seats[cur]||{}).name)+' is choosing a seat…'}${S.left&&S.pickIdx<4?' <span class="clock"></span>':''}</h3>
-  <div class="seatpick">${[0,1,2,3].map(w=>{const o=picks[w];return`<button class="seatb${o!==undefined?' taken':''}" type="button" data-a="seat:${w}"${!mine||o!==undefined?' disabled':''}><span class="sw">${WCH[w]}</span><b>${WN[w]}</b><small>${o!==undefined?esc((S.seats[o]||{}).name):w===0?'Dealer · plays first':'Free'}</small></button>`}).join('')}</div>`}
- return`<div class="card dicecard"><h2>${roll?'🎲 Roll for seats':'🪑 Choose your seats'}</h2>
- <p class="how">${roll?'Everyone rolls 3 dice. The highest total chooses a seat first, then the next highest, and so on.':'In dice order, each player picks a seat. East is the dealer and plays first.'}${roll&&S.left?' <span class="clock"></span>':''}</p>
+  pick=`<h3 class="pickh">${S.pickIdx>=4?'Seats are set. Starting the game…':mine?'Your turn: tap a face-down tile':esc((S.seats[cur]||{}).name)+' is drawing a seat…'}${S.left&&S.pickIdx<4?' <span class="clock"></span>':''}</h3>
+  <div class="seatpick">${[0,1,2,3].map(bk=>{const o=(S.blocks||{})[bk],w=Array.isArray(S.hidden)?S.hidden[bk]:-1,open=o!==undefined&&w>=0;
+   return`<button class="seatb blk${open?' taken':''}" type="button" data-a="seat:${bk}"${!mine||o!==undefined?' disabled':''} aria-label="${open?WN[w]+' seat':'Hidden seat '+(bk+1)}">${open?`<span class="sw">${WCH[w]}</span><b>${WN[w]}</b><small>${esc((S.seats[o]||{}).name)}${w===0?' · dealer':''}</small>`:`<span class="bkface">?</span><b>Tile ${bk+1}</b><small>${mine?'Tap to draw':'Hidden'}</small>`}</button>`}).join('')}</div>`}
+ return`<div class="card dicecard"><h2>${roll?'🎲 Roll for seats':'🀄 Draw your seat'}</h2>
+ <p class="how">${roll?'Everyone rolls 3 dice. The highest total chooses a seat first, then the next highest, and so on.':'In dice order, each player draws one of the 4 face-down tiles. It shows your seat. East is the dealer and plays first.'}${roll&&S.left?' <span class="clock"></span>':''}</p>
  <ol class="rdy dlist">${rows}</ol>${pick}${B('leave','Leave','ghost')}</div>`}
 
 /* ---------- rendering ---------- */
