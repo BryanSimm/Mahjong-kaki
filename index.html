@@ -224,6 +224,8 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 @media(prefers-reduced-motion:reduce){.t.glow{animation:none}}
 .btn.endg.armed{background:var(--red);color:#fff;box-shadow:0 4px 0 #8f1c22;opacity:1}
 .cont{display:grid;gap:6px}.contbtns{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.btn.danger{background:var(--red);color:#fff;box-shadow:0 4px 0 #8f1c22;opacity:1}.vic{font-size:14px}.vrow{align-items:center}
+.zbar{display:inline-flex;border-radius:10px;overflow:hidden;box-shadow:inset 0 0 0 2px rgba(246,239,220,.45)}
+.zb{font:700 15px Figtree,sans-serif;min-width:44px;min-height:40px;padding:0 10px;border:0;background:transparent;color:var(--ink);cursor:pointer}.zb:hover{background:rgba(246,239,220,.12)}.zb:focus-visible{outline:3px solid #fff;outline-offset:-3px}.zlab{min-width:76px;border-inline:1px solid rgba(246,239,220,.3)}
 .outinfo{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin:0;font-size:15px;background:rgba(255,213,74,.14);border:1px solid rgba(255,213,74,.45);border-radius:12px;padding:6px 12px;width:max-content;max-width:100%;margin-inline:auto}
 .outinfo b{color:#ffd54a;font-size:17px}
 </style>
@@ -598,7 +600,7 @@ async function joinTable(){const code=$('#code').value.trim().toUpperCase();if(!
  R.on('closed',()=>{if(mode==='guest'&&S&&S.phase!=='closed'){S={...S,phase:'closed'};draw()}});
  ping();timers.push(setInterval(()=>{ping();if(S&&S.phase!=='closed'&&Date.now()-lastSeen>16000)banner('Lost contact with the host…',true)},2500));
  $('#home').hidden=true;$('#game').hidden=false;$('#game').innerHTML=`<div class="card"><h2>Joining ${esc(code)}…</h2><p>Waiting for the host's table to answer. Check the code if this takes long.</p>${B('leave','Back','ghost')}</div>`}
-function leave(){leaveVoice(true);const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
+function leave(){leaveVoice(true);$('#game').style.zoom='';const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
  setTimeout(()=>{try{r&&r.leave&&r.leave()}catch(e){}},500);mode=null;tableCode=null;lobbyPresence();clearTimeout(tm);timers.forEach(clearInterval);timers=[];R=null;G=null;S=null;
  showContinue();$('#game').hidden=true;$('#modal').hidden=true;$('#banner').hidden=true;$('#home').hidden=false}
 function banner(t,stay){const b=$('#banner');b.textContent=t;b.hidden=false;if(!stay)setTimeout(()=>b.hidden=true,3000)}
@@ -678,6 +680,15 @@ function loadSolo(){const g=readSave();if(!g)return banner('No saved game found'
  G.endsAt=G.timeLimit?Date.now()+Math.max(1000,G.gameLeftSaved||0):0;delete G.gameLeftSaved;delete G.savedAt;
  log('Game loaded. Welcome back!');
  if(G.phase==='play'){if(G.sub==='claim'&&G.claims&&G.last){for(const q in G.claims)if(G.seats[q].bot&&!(q in G.resp))G.resp[q]=botClaim(+q,G.last.t,G.claims[q]);G.deadline=Date.now()+12000;later(12000,resolve);push()}else enterDiscard()}else push()}
+
+/* ---------- fit the table to the screen (auto zoom + manual -/+) ---------- */
+let uiZoom='auto';try{const z=localStorage.getItem('mjzoom');if(z)uiZoom=z==='auto'?'auto':Math.min(1.4,Math.max(.5,+z)||1)}catch(e){}
+function fitTable(){const g=$('#game'),f=g.querySelector('.felt');if(!f){g.style.zoom='';return}
+ let z;if(uiZoom==='auto'){g.style.zoom=1;const bar=document.querySelector('.bar');const avail=innerHeight-(bar?bar.offsetHeight:0)-16;const need=f.offsetHeight+24;z=need>avail?Math.max(.5,avail/need):1}else z=uiZoom;
+ g.style.zoom=z;const lab=document.querySelector('.zlab');if(lab)lab.textContent=(uiZoom==='auto'?'Fit ':'')+Math.round(z*100)+'%'}
+function setZoom(d){const cur=parseFloat($('#game').style.zoom)||1;uiZoom=d==='fit'?'auto':Math.round(Math.min(1.4,Math.max(.5,cur+d))*100)/100;try{localStorage.setItem('mjzoom',uiZoom)}catch(e){}fitTable()}
+addEventListener('resize',()=>{if(S&&S.phase!=='lobby')fitTable()});
+const zoomBar=()=>`<span class="zbar" role="group" aria-label="Table size"><button type="button" class="zb" data-a="zout" aria-label="Smaller">−</button><button type="button" class="zb zlab" data-a="zfit" title="Fit to screen">Fit</button><button type="button" class="zb" data-a="zin" aria-label="Bigger">+</button></span>`;
 
 /* ---------- rendering ---------- */
 const B=(a,txt,cls='')=>`<button class="btn ${cls}" type="button" data-a="${esc(a)}">${esc(txt)}</button>`;
@@ -778,12 +789,12 @@ function draw(){if(!S)return;setTimeout(syncVoice,0);recvAt=Date.now();ME=S.seat
  $('#home').hidden=true;const g=$('#game');g.hidden=false;const md=$('#modal');
  try{
   if(S.phase==='closed'){g.innerHTML=`<div class="card"><h2>The host closed this table</h2><p class="how">Thanks for playing!</p>${B('leave','Back','ghost')}</div>`;md.hidden=true;return}
-  if(S.phase==='lobby'){g.innerHTML=waitHTML();md.hidden=true;return}
+  if(S.phase==='lobby'){g.style.zoom='';g.innerHTML=waitHTML();md.hidden=true;return}
   const v=ME<0?0:ME,[b,r,t,l]=[0,1,2,3].map(i=>(v+i)%4);
   g.innerHTML=`<div class="felt real"><div class="opp top">${oppTop(t)}</div><div class="opp left">${oppSide(l)}</div><div class="center">${centerHTML(b,r,t,l)}</div><div class="opp right">${oppSide(r)}</div><div class="mine">${mineHTML(b)}</div></div>
-  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${voiceBar()}${mode!=='guest'&&S.phase==='play'?endBtn():''}${B('leave','Leave table','ghost')}</div>`;
+  <div class="under"><ol class="log">${S.log.slice(-5).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>${S.code?`<span class="code">Table ${esc(S.code)}</span>`:''}${zoomBar()}${voiceBar()}${mode!=='guest'&&S.phase==='play'?endBtn():''}${B('leave','Leave table','ghost')}</div>`;
   if(S.phase==='end'||S.phase==='over'){md.innerHTML=modalHTML();md.hidden=false}else md.hidden=true;
-  tick();countHand();applyGlow()
+  tick();countHand();applyGlow();fitTable()
  }catch(e){g.innerHTML='<div class="card"><h2>Something went wrong</h2><p>The table sent a state this page could not read.</p>'+B('leave','Back','ghost')+'</div>'}}
 function tick(){if(!S)return;const ms=(S.left||0)-(Date.now()-recvAt);const gm=(S.gameLeft||0)-(Date.now()-recvAt);for(const c of document.querySelectorAll('.gclock'))c.textContent=S.timeLimit?(x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0'))(Math.max(0,Math.ceil(gm/1000))):'';
  for(const c of document.querySelectorAll('.clock'))c.textContent=ms>0?(x=>Math.floor(x/60)+':'+String(x%60).padStart(2,'0'))(Math.ceil(ms/1000)):''}
@@ -794,6 +805,9 @@ function onClick(e){const tl=e.target.closest('.hand.live .t[data-i]');
  if(a==='leave')return leave();
  if(a==='start'&&mode==='host'&&G&&G.phase==='lobby'&&allReady())return startGame();
  if(a==='endgame'&&mode!=='guest'&&G){if(!endArm){endArm=true;draw();clearTimeout(endT);endT=setTimeout(()=>{endArm=false;if(S)draw()},4000);return}endArm=false;clearTimeout(endT);return endByHost()}
+ if(a==='zin')return setZoom(.1);
+ if(a==='zout')return setZoom(-.1);
+ if(a==='zfit')return setZoom('fit');
  if(a==='vjoin')return joinVoice();
  if(a==='vmute')return toggleMute();
  if(a==='vleave')return leaveVoice(false);
