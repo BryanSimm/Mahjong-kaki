@@ -587,7 +587,7 @@ function doDiscard(s,t){const P=G.seats[s];rm(P.hand,t);sortT(P.hand);P.discards
  if(!Object.keys(claims).length)return nextTurn((s+1)%4);
  G.sub='claim';G.claims=claims;G.resp={};G.opts=null;
  for(const q in claims){const Q=G.seats[q];if(Q.bot)G.resp[q]=botClaim(+q,t,claims[q]);else if(Q.away)G.resp[q]={k:claims[q].hu?'hu':'pass'}}
- if(Object.keys(claims).every(q=>q in G.resp)){G.deadline=0;later(550,resolve)}else{G.deadline=Date.now()+12000;later(12000,resolve)}
+ if(Object.keys(claims).every(q=>q in G.resp)){G.deadline=0;later(550,resolve)}else{G.deadline=Date.now()+30000;later(30000,resolve)}
  push()}
 function claimOpts(q,t,from){const P=G.seats[q],o={hu:!!winScore(q,[...P.hand,t],t,false),pong:false,kong:false,chows:[]};
  if(G.wall.length){const c=cnt(P.hand,t);o.pong=c>=2;o.kong=c>=3;
@@ -786,7 +786,7 @@ function loadSolo(){const g=readSave();if(!g)return banner('No saved game found'
  G.endsAt=G.timeLimit?Date.now()+Math.max(1000,G.gameLeftSaved||0):0;delete G.gameLeftSaved;delete G.savedAt;
  log('Game loaded. Welcome back!');
  if(G.phase==='dice'||G.phase==='pick')return beginDice();
- if(G.phase==='play'){if(G.sub==='claim'&&G.claims&&G.last){for(const q in G.claims)if(G.seats[q].bot&&!(q in G.resp))G.resp[q]=botClaim(+q,G.last.t,G.claims[q]);G.deadline=Date.now()+12000;later(12000,resolve);push()}else enterDiscard()}else push()}
+ if(G.phase==='play'){if(G.sub==='claim'&&G.claims&&G.last){for(const q in G.claims)if(G.seats[q].bot&&!(q in G.resp))G.resp[q]=botClaim(+q,G.last.t,G.claims[q]);G.deadline=Date.now()+30000;later(30000,resolve);push()}else enterDiscard()}else push()}
 
 /* ---------- fit the table to the screen (auto zoom + manual -/+) ---------- */
 let uiZoom='auto';try{const z=localStorage.getItem('mjzoom');if(z)uiZoom=z==='auto'?'auto':Math.min(1.4,Math.max(.5,+z)||1)}catch(e){}
