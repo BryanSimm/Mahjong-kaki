@@ -263,6 +263,17 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 .pop.say::after{content:"";position:absolute;left:50%;bottom:-7px;margin-left:-7px;border:7px solid transparent;border-bottom:0;border-top-color:var(--ivory)}
 @keyframes popin{0%{opacity:0;transform:translate(-50%,-60%) scale(.4)}12%{opacity:1;transform:translate(-50%,-110%) scale(1.15)}22%{transform:translate(-50%,-100%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-130%) scale(.95)}}
 @media (prefers-reduced-motion:reduce){.pop{animation:none}}
+.dial{position:relative;width:max(92px,calc(var(--pw)*7.4));height:max(92px,calc(var(--pw)*7.4));border-radius:24%;background:radial-gradient(circle,#0b4033,#06261e);box-shadow:inset 0 0 0 2px rgba(246,239,220,.16),0 4px 12px rgba(0,0,0,.35);display:grid;place-items:center;flex:none}
+.sq .dial .compass{width:max(40px,calc(var(--pw)*3.3));height:max(40px,calc(var(--pw)*3.3))}.sq .dial .compass b{font-size:max(18px,calc(var(--pw)*1.35))}
+.lamp{position:absolute;width:calc(var(--pw)*1.35);height:calc(var(--pw)*1.35);min-width:16px;min-height:16px;border-radius:24%;background:#0a2c24;border:2px solid rgba(246,239,220,.28);display:grid;place-items:center;color:rgba(246,239,220,.75);transition:background .3s,box-shadow .3s}
+.lamp i{font:900 max(10px,calc(var(--pw)*.85))/1 'Noto Serif TC',serif;font-style:normal}
+.lamp.lt{top:4%;left:50%;transform:translateX(-50%) rotate(180deg)}.lamp.lb{bottom:4%;left:50%;transform:translateX(-50%)}
+.lamp.ll{left:4%;top:50%;transform:translateY(-50%) rotate(90deg)}.lamp.lr{right:4%;top:50%;transform:translateY(-50%) rotate(-90deg)}
+.lamp.dl{border-color:#ff6b6f}
+.lamp.on{background:#ffd34d;color:#5a2a00;border-color:#fff4c7;box-shadow:0 0 calc(var(--pw)*.7) #ffc83a,0 0 calc(var(--pw)*1.8) rgba(255,200,58,.55);animation:lampp 1.5s ease-in-out infinite}
+@keyframes lampp{50%{box-shadow:0 0 calc(var(--pw)*.3) #ffc83a,0 0 calc(var(--pw)*.8) rgba(255,200,58,.35)}}
+.lamp em{position:absolute;top:-45%;right:-45%;width:max(13px,calc(var(--pw)*.8));height:max(13px,calc(var(--pw)*.8));border-radius:50%;background:var(--red);color:#fff;font:900 max(8px,calc(var(--pw)*.48))/1 'Noto Serif TC',serif;font-style:normal;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+@media (prefers-reduced-motion:reduce){.lamp.on{animation:none}}
 </style>
 </head>
 <body>
@@ -829,11 +840,13 @@ function pondTiles(s){const d=S.seats[s].discards,n=d.length,hot=S.sub==='claim'
 function centerHTML(b,r,t,l){return`<div class="sq">
  <div class="pd pt"><div class="pond2">${pondTiles(t)}</div></div>
  <div class="pd pl"><div class="pond2">${pondTiles(l)}</div></div>
- <div class="mid">${midHTML()}</div>
+ <div class="mid">${midHTML(b,r,t,l)}</div>
  <div class="pd pr2"><div class="pond2">${pondTiles(r)}</div></div>
  <div class="pd pb"><div class="pond2">${pondTiles(b)}</div></div></div>`}
-function midHTML(){const cur=S.seats[S.turn]||{};
- return`<div class="compass"><b>${WCH[S.round]||'北'}</b><span>${['East','South','West','North'][S.round]||''} round</span></div>
+function lampHTML(s,pos){const P=S.seats[s]||{},w=(s-S.dealer+4)%4,on=S.phase==='play'&&S.turn===s,dl=s===S.dealer;
+ return`<span class="lamp ${pos}${on?' on':''}${dl?' dl':''}" title="${esc(P.name)}: ${["East","South","West","North"][w]} seat${dl?' · dealer':''}${on?' · their turn':''}"><i>${WCH[w]}</i>${dl?'<em>莊</em>':''}</span>`}
+function midHTML(b,r,t,l){const cur=S.seats[S.turn]||{};
+ return`<div class="dial">${lampHTML(t,'lt')}${lampHTML(l,'ll')}${lampHTML(r,'lr')}${lampHTML(b,'lb')}<div class="compass"><b>${WCH[S.round]||'北'}</b><span>${['East','South','West','North'][S.round]||''} round</span></div></div>
  <div class="stat"><span>Wall <b>${Number(S.wallN)||0}</b></span><span>Hand <b>${Number(S.handNo)||0}</b></span>${S.timeLimit?'<span>⏱ <b class="gclock"></b></span>':''}</div>
  <div class="turn">${S.phase!=='play'?'':S.sub==='claim'?'Claim window':S.turn===ME?'Your turn':esc(cur.name)+'’s turn'}</div>
  ${S.sub==='claim'&&S.last?`<div class="lastd">${tile(S.last.t)}</div>`:''}`}
