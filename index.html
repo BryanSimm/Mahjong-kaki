@@ -274,6 +274,8 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 @keyframes lampp{50%{box-shadow:0 0 calc(var(--pw)*.3) #ffc83a,0 0 calc(var(--pw)*.8) rgba(255,200,58,.35)}}
 .lamp em{position:absolute;top:-45%;right:-45%;width:max(13px,calc(var(--pw)*.8));height:max(13px,calc(var(--pw)*.8));border-radius:50%;background:var(--red);color:#fff;font:900 max(8px,calc(var(--pw)*.48))/1 'Noto Serif TC',serif;font-style:normal;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 @media (prefers-reduced-motion:reduce){.lamp.on{animation:none}}
+.payt{border-collapse:collapse;margin:6px 0 10px;font-size:14px}.payt th,.payt td{padding:4px 10px;border-bottom:1px solid rgba(128,128,128,.3);text-align:center}.payt th{font-size:12px}
+.tai{font:800 12px/1 Figtree,sans-serif;padding:3px 7px;border-radius:8px;background:rgba(0,0,0,.25);color:var(--dim);white-space:nowrap}.tai.has{background:#ffd34d;color:#5a2a00}
 </style>
 </head>
 <body>
@@ -302,9 +304,11 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
    <summary>Rules used at this table</summary>
    <div id="guide"></div>
    <p>148 tiles: dots, bamboo and characters (1–9, four of each), four winds, three dragons, eight flowers and seasons, and four animals (cat, mouse, rooster, centipede). Bonus tiles go face-up and you draw a replacement.</p>
-   <p>Win with four sets (pong, kong or chow) plus a pair, or thirteen wonders. To win off someone's discard you need at least <b>1 tai</b>. A hand with <b>no tai</b> can only win by <b>self-draw (自摸)</b>, and then counts as 1 tai. Scoring caps at <b>5 tai</b>. Chow only from the player on your left; Hu beats Pong/Kong, which beats Chow.</p>
+   <p>Win with four sets (pong, kong or chow) plus a pair, or thirteen wonders. Winning by <b>self-draw (自摸) adds 1 tai</b>. A hand with <b>no tai</b> can still win and counts as <b>1 tai</b> (off a discard: the shooter pays 2, the others pay 1), or 2 tai if self-drawn. One exception: a no-tai hand <b>waiting in the middle</b> (like 5 _ 7 waiting on 6) can only win by <b>self-draw (自摸)</b>. Scoring caps at <b>5 tai</b>. The yellow <b>台</b> chip next to each name shows the tai already on the table: flowers or seasons matching that seat, every animal, and exposed pongs of dragons or the seat/round wind (hover or long-press to see why). Chow only from the player on your left; Hu beats Pong/Kong, which beats Chow.</p>
    <div id="rulesEx"></div>
-   <p>Payout unit doubles per tai: 1, 2, 4, 8, 16. Win off a discard: the shooter pays double, the others pay single. Self-drawn: everyone pays double. Instant "bites": cat + mouse or rooster + centipede, everyone pays 1; exposed kong, everyone pays 1; concealed kong, everyone pays 2.</p>
+   <p>Payouts (capped at 5 tai):</p>
+   <table class="payt"><thead><tr><th>Tai</th><th>Shooter pays</th><th>Others pay</th><th>Self-drawn: each pays</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>1</td><td>2</td></tr><tr><td>2</td><td>3</td><td>2</td><td>3</td></tr><tr><td>3</td><td>5</td><td>3</td><td>5</td></tr><tr><td>4</td><td>7</td><td>5</td><td>7</td></tr><tr><td>5</td><td>20</td><td>10</td><td>20</td></tr></tbody></table>
+   <p>Off a discard, the shooter pays the bigger amount and the other two pay the smaller one. Self-drawn (自摸) adds 1 tai, then all three pay the shooter amount. Instant "bites": cat + mouse or rooster + centipede, everyone pays 1; exposed kong, everyone pays 1; concealed kong, everyone pays 2.</p>
    <p>Everyone starts at 0 points. The game ends after four wind rounds, or when the game time limit (if you set one) runs out. The dealer keeps the deal after winning or a drawn hand.</p>
   </details>
  </section>
@@ -444,10 +448,11 @@ $('#fan').innerHTML=['ZR','A1','D5','XE','B7','C8','ZG'].map((c,i)=>tile(c).repl
  $('#guide').innerHTML=grp.map(([h,cs])=>`<h3 class="gh">${h}</h3><div class="gt">${cs.map(c=>tile(c)).join('')}</div>`).join('')}
 {const EX=[
  ['How to win: 4 sets + 1 pair','',[['C1','C2','C3'],['D5','D5','D5'],['B6','B7','B8'],['ZR','ZR','ZR'],['XE','XE']],'Chow (3 in a row) · Pong (3 the same) · Chow · Pong · Pair'],
- ['No tai? Self-draw only (自摸)','1 tai',[['C9','C9','C9'],['C1','C2','C3'],['D4','D5','D6'],['B5','B7'],['B8','B8']],'This hand has no tai and waits on 6 bamboo. Nobody’s discard can win it: you must draw the 6 yourself, and then it counts as 1 tai'],
- ['Wait on 2 tiles with 4 in a row','自摸 only (no tai)',[['D1','D2','D3'],['C4','C5','C6'],['C9','C9','C9'],['B6','B7','B8','B9']],'Waiting on 6 or 9 bamboo: 6-6 + 7-8-9, or 6-7-8 + 9-9. The winning tile makes your pair, so it is not ping hu. With no tai you must self-draw; with 1+ tai you can Hu off any discard'],
+ ['No tai, middle wait: self-draw only (自摸)','2 tai self-drawn',[['C9','C9','C9'],['C1','C2','C3'],['D4','D5','D6'],['B5','B7'],['B8','B8']],'This hand has no tai and waits in the middle on 6 bamboo (5 _ 7). Nobody’s discard can win it: you must draw the 6 yourself, and then it counts as 2 tai (1 for no tai + 1 for self-draw)'],
+ ['No tai, other waits: Hu off a discard','1 tai',[['C9','C9','C9'],['C1','C2','C3'],['D4','D5','D6'],['B5','B6'],['B8','B8']],'Also no tai, but waiting on 4 or 7 bamboo. You can Hu off anyone’s discard: it counts as 1 tai, so the shooter pays 2 and the other two pay 1'],
+ ['Wait on 2 tiles with 4 in a row','1 tai if no other tai',[['D1','D2','D3'],['C4','C5','C6'],['C9','C9','C9'],['B6','B7','B8','B9']],'Waiting on 6 or 9 bamboo: 6-6 + 7-8-9, or 6-7-8 + 9-9. The winning tile makes your pair, so it is not ping hu. It is not a middle wait, so even with no tai you can Hu off any discard (counts as 1 tai)'],
  ['Two-sided wait can be ping hu','4 tai, Hu off a discard',[['D1','D2','D3'],['C4','C5','C6'],['B2','B3','B4'],['B5','B6'],['C7','C7']],'Waiting on 4 or 7 bamboo to finish 5-6. All sets are chows, the pair is 7萬 and there are no bonus tiles, so it is ping hu (4 tai): you can win off anyone’s discard'],
- ['Middle or edge wait is never ping hu','自摸 only (no tai)',[['B5','B7'],['B1','B2'],['B8','B9']],'5_7 waits only on 6, 1-2 only on 3, 8-9 only on 7. These never make ping hu, so with no other tai you must self-draw'],
+ ['Middle or edge wait is never ping hu','not ping hu',[['B5','B7'],['B1','B2'],['B8','B9']],'5_7 waits only on 6 (middle wait), 1-2 only on 3 and 8-9 only on 7 (edge waits). None of these make ping hu. With no other tai, the middle wait 5_7 must be self-drawn; the edge waits can still Hu off a discard as 1 tai'],
  ['Pong of any dragon (中 發 白)','1 tai each',[['ZR','ZR','ZR'],['ZG','ZG','ZG'],['ZW','ZW','ZW']],'Each of these pongs is worth 1 tai'],
  ['Pong of your seat wind / the round wind','1 tai each',[['XE','XE','XE']],'East pong: 1 tai if you sit East, +1 more in the East round'],
  ['Flower or season matching your seat','1 tai each',[['F1','Q1']],'Seat numbers: East 1 · South 2 · West 3 · North 4. These two count for East'],
@@ -496,8 +501,16 @@ function score(s,tiles,wt){const P=G.seats[s],sw=(s-G.dealer+4)%4,pw=G.round;
    .sort((a,b)=>RANK[a.tiles[0]]-RANK[b.tiles[0]]).concat([{type:'pair',tiles:[d.pair,d.pair]}]);
   if(!best||r.tai>best.tai)best=r}
  return best}
-/* House rule: a hand with no tai can't win off a discard, only by self-draw (自摸), which then counts as 1 tai. */
-const winScore=(s,tiles,wt,self)=>{if(tiles.length%3!==2)return null;const r=score(s,tiles,wt);if(!r)return null;if(r.tai>=1)return r;return self?{tai:1,items:[['Self-drawn (自摸) with no other tai',1]],groups:r.groups}:null};
+/* House rule: a hand with no tai still wins and counts as 1 tai (off a discard: shooter pays 2, others 1).
+   But a no-tai hand waiting in the middle (e.g. 5_7 waiting on 6) can only win by self-draw (自摸). */
+const middleOnly=(tiles,wt)=>{if(!wt||!isNum(wt))return false;const ds=decomps(tiles);if(!ds.length)return false;
+ return ds.every(d=>d.pair!==wt&&d.sets.every(x=>!x.tiles.includes(wt)||(x.type==='chow'&&x.tiles[1]===wt&&x.tiles[0]!==wt&&x.tiles[2]!==wt)))};
+/* Self-draw (自摸) adds +1 tai on top (a no-tai hand counts as 1, so a no-tai self-draw is 2 tai). Cap stays 5. */
+const winScore=(s,tiles,wt,self)=>{if(tiles.length%3!==2)return null;const r=score(s,tiles,wt);if(!r)return null;
+ let items=r.items.slice(),raw=items.reduce((a,b)=>a+b[1],0);
+ if(r.tai<1){if(!self&&middleOnly(tiles,wt))return null;items=[['No tai (counts as 1 tai)',1]];raw=1}
+ if(self&&r.tai<5){items.push(['Self-drawn (自摸)',1]);raw+=1}
+ return{...r,items,tai:Math.min(5,Math.max(r.tai,raw))}};
 const mkSeat=(name,cid,bot)=>({name,cid,bot,hand:[],melds:[],bonus:[],discards:[],score:0,away:false,miss:0});
 const log=m=>{G.log.push(m);if(G.log.length>40)G.log.shift()};
 const pay=(f,t,a)=>{G.seats[f].score-=a;G.seats[t].score+=a};
@@ -598,8 +611,10 @@ function act(s,a){if(!G||G.phase!=='play')return;const P=G.seats[s];
   const ok=a.k==='pass'||(a.k==='hu'&&o.hu)||(a.k==='pong'&&o.pong)||(a.k==='kong'&&o.kong)||(a.k==='chow'&&Array.isArray(a.c)&&o.chows.some(c=>c.join()===a.c.join()));
   if(!ok)return;G.resp[s]=a.k==='chow'?{k:'chow',c:o.chows.find(c=>c.join()===a.c.join())}:{k:a.k};
   if(Object.keys(G.claims).every(q=>q in G.resp))return resolve();push()}}
-function settle(w,self,from,t){clearTimeout(tm);const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},u=2**(sc.tai-1),before=G.seats.map(x=>x.score);
- if(self)payAll(w,2*u);else for(let i=0;i<4;i++)if(i!==w)pay(i,w,i===from?2*u:u);
+/* Payout table by tai: [shooter pays, each other player pays]. Self-draw: everyone pays the shooter amount. */
+const PAYT={1:[2,1],2:[3,2],3:[5,3],4:[7,5],5:[20,10]};
+function settle(w,self,from,t){clearTimeout(tm);const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},pt=PAYT[Math.max(1,Math.min(5,sc.tai))],before=G.seats.map(x=>x.score);
+ if(self)payAll(w,pt[0]);else for(let i=0;i<4;i++)if(i!==w)pay(i,w,i===from?pt[0]:pt[1]);
  G.result={w,self,from,t,tai:sc.tai,items:sc.items,groups:sc.groups||null,delta:G.seats.map((x,i)=>x.score-before[i]),hand:sortT(P.hand.slice()),melds:P.melds,bonus:P.bonus};
  log(`${P.name} wins with ${sc.tai} tai!`);G.phase='end';G.sub=null;G.claims=null;
  if(w!==G.dealer){G.dealer=(G.dealer+1)%4;if(++G.moves%4===0)G.round++}
@@ -825,8 +840,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&chatOpen)setChat(fa
 const B=(a,txt,cls='')=>`<button class="btn ${cls}" type="button" data-a="${esc(a)}">${esc(txt)}</button>`;
 const hostBtn=(a,t)=>mode!=='guest'?B(a,t,'win'):'<p class="hint dim">Waiting for the host…</p>';
 const meldHTML=m=>`<span class="meld">${(m.tiles||[]).map((c,i)=>m.concealed&&(i===0||i===3)?'<span class="t back s"></span>':tile(c,'s')).join('')}</span>`;
-function whoHTML(s){const P=S.seats[s],w=(s-S.dealer+4)%4;
- return`<div class="who${S.phase==='play'&&S.turn===s?' on':''}" data-seat="${s}"><b class="wd" title="Seat wind">${WCH[w]}</b><span class="nm">${esc(P.name)}${s===ME&&P.name!=='You'?' (you)':''}</span>${inVoice(P)?`<span class="vic" title="In voice chat">${S.voice[P.cid].mute?'🔇':'🔊'}</span>`:''}${s===S.dealer?'<span class="tag">Dealer</span>':''}${P.bot?'<span class="tag">Bot</span>':P.away?'<span class="tag">Away</span>':''}<span class="pts">${Number(P.score)||0}</span></div>`}
+/* Live tai from what is visible: own-seat flower/season, animals, exposed pongs/kongs of dragons or seat/round wind. */
+function liveTai(s){const P=S.seats[s],w=(s-S.dealer+4)%4,why=[];
+ for(const b of P.bonus||[]){if(!VALID.has(b))continue;if(b[0]==='A')why.push(LBL(b));else if((b[0]==='F'||b[0]==='Q')&&+b[1]===w+1)why.push(LBL(b))}
+ for(const m of P.melds||[]){if(m.type==='chow'||(m.concealed&&s!==ME))continue;const t=m.tiles[0];if(!VALID.has(t))continue;
+  if(t[0]==='Z')why.push('Pong of '+LBL(t));else if(t[0]==='X'){const x='ESWN'.indexOf(t[1]);if(x===w)why.push('Pong of seat wind '+WCH[x]);if(x===S.round)why.push('Pong of round wind '+WCH[x])}}
+ return why}
+function whoHTML(s){const P=S.seats[s],w=(s-S.dealer+4)%4,lt=S.phase==='play'||S.phase==='end'?liveTai(s):null;
+ return`<div class="who${S.phase==='play'&&S.turn===s?' on':''}" data-seat="${s}"><b class="wd" title="Seat wind">${WCH[w]}</b><span class="nm">${esc(P.name)}${s===ME&&P.name!=='You'?' (you)':''}</span>${inVoice(P)?`<span class="vic" title="In voice chat">${S.voice[P.cid].mute?'🔇':'🔊'}</span>`:''}${lt?`<span class="tai${lt.length?' has':''}" title="${lt.length?esc(lt.join(' · ')):'No tai showing yet'}">${Math.min(5,lt.length)} 台</span>`:''}${s===S.dealer?'<span class="tag">Dealer</span>':''}${P.bot?'<span class="tag">Bot</span>':P.away?'<span class="tag">Away</span>':''}<span class="pts">${Number(P.score)||0}</span></div>`}
 function pondHTML(s){const d=S.seats[s].discards,n=d.length,hot=S.sub==='claim'&&S.last&&S.last.from===s;return`<div class="pond">${d.map((c,i)=>tile(c,'s'+(hot&&i===n-1?' hot':''))).join('')}</div>`}
 const extras=P=>P.melds.map(meldHTML).join('')+P.bonus.map(c=>tile(c,'s')).join('');
 function seatHTML(s){const P=S.seats[s];return whoHTML(s)+`<div class="tiles"><span class="t back s"></span><span class="x">×${P.hand.length}</span>${extras(P)}</div>`+pondHTML(s)}
@@ -912,7 +933,7 @@ function modalHTML(){
  if(r.draw)return`<div class="card"><h2>Draw game</h2><p class="how">The wall ran out. The same dealer deals again.</p>${contBtns(false)}</div>`;
  const W=S.seats[r.w]||{};let hl=false;
  return`<div class="card"><h2>${esc(W.name)} wins with ${Number(r.tai)} tai</h2>
- <p class="how">${r.self?'Self-drawn (自摸): everyone pays double.':'Off '+esc((S.seats[r.from]||{}).name)+'’s discard: the shooter pays double.'}</p>
+ <p class="how">${r.self?'Self-drawn (自摸): everyone pays the full amount.':'Off '+esc((S.seats[r.from]||{}).name)+'’s discard: the shooter pays more.'}</p>
  ${groupsHTML(r)}
  ${(r.bonus||[]).length?`<div class="bon">${r.bonus.map(c=>tile(c,'s')).join('')}</div>`:''}
  <table><tbody>${(r.items||[]).map(([n,v])=>`<tr><td>${esc(n)}</td><td>${Number(v)}</td></tr>`).join('')}<tr class="tot"><td>Total (capped at 5)</td><td>${Number(r.tai)}</td></tr></tbody></table>
