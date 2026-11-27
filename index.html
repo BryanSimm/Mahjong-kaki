@@ -380,8 +380,8 @@ function face(c){const k=c[0],n=+c[1];
  if(c==='ZR')return TX(15,29,24,RED,'中');
  if(c==='ZG')return TX(15,29,23,GRN,'發');
  if(c==='ZW')return`<rect x="6.5" y="7.5" width="17" height="25" rx="2.2" fill="none" stroke="${INK}" stroke-width="1.9"/><rect x="9.3" y="10.3" width="11.4" height="19.4" rx="1.2" fill="none" stroke="${INK}" stroke-width="1"/>`;
- if(k==='F')return flower(['#d1405a','#9b4fc0','#e0781f','#3a8a5a'][n-1],n===4)+TX(7.5,10,7,RED,'梅蘭菊竹'[n-1])+TX(24,9.5,7,INK,n,600);
- if(k==='Q')return flower(['#e6609a','#d1405a','#d97a1f','#4a78c2'][n-1],false)+TX(7.5,10,7,RED,'春夏秋冬'[n-1])+TX(24,9.5,7,INK,n,600);
+ if(k==='F')return flower(['#d1405a','#9b4fc0','#e0781f','#3a8a5a'][n-1],n===4)+TX(7.5,10,7,RED,'梅蘭菊竹'[n-1])+TX(24,9.5,7,RED,n,700);
+ if(k==='Q')return flower(['#e6609a','#d1405a','#d97a1f','#4a78c2'][n-1],false)+TX(7.5,10,7,'#1d4fa0','春夏秋冬'[n-1])+TX(24,9.5,7,'#1d4fa0',n,700);
  return ANIMAL[n-1]}
 function tile(c,cls='',i){if(!VALID.has(c))return`<span class="t back ${cls}"></span>`;
  return`<span class="t ${cls}" data-c="${c}" title="${esc(LBL(c))}"${i!==undefined?` data-i="${i}" tabindex="0" role="button"`:''}><svg viewBox="0 0 30 40" aria-hidden="true">${face(c)}</svg></span>`}
