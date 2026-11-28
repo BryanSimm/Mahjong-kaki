@@ -280,6 +280,13 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
 #peekbox{border:2px solid #ffd54a;position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:24;margin:0;background:var(--ivory);color:#1d2b25;padding:8px 14px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:calc(100vw - 110px)}
 .felt .pond2 .t[data-c],.felt .meld .t[data-c],.felt .sidex .t[data-c],.felt .mid .t[data-c]{cursor:pointer}
 .rank .rr{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}.gd{font-size:12px;font-weight:700;color:#7a7a6a}.gd.up{color:#1f7a4a}.gd.dn{color:var(--red)}
+.callout{position:fixed;z-index:70;pointer-events:none;transform:translate(-50%,-50%);display:flex;align-items:center;gap:10px;padding:10px 22px;border-radius:18px;background:var(--red);color:#fff6e0;border:3px solid #ffd34d;box-shadow:0 10px 30px rgba(0,0,0,.45);animation:callin 1.7s cubic-bezier(.2,1.4,.4,1) forwards;white-space:nowrap}
+.callout b{font:900 44px/1 'Noto Serif TC',serif}.callout span{font:900 26px/1 Figtree,sans-serif;letter-spacing:.04em}
+.callout.chow{background:#1f7a4a}.callout.kong,.callout.ankong{background:#7a3fb0}
+.callout.big{padding:16px 30px;animation-duration:2.6s;background:linear-gradient(135deg,#d9262c,#b3151b)}.callout.big b{font-size:64px}.callout.big span{font-size:34px}
+@keyframes callin{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(2deg)}25%{transform:translate(-50%,-50%) scale(1) rotate(0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(.95)}}
+@media (max-width:600px){.callout b{font-size:32px}.callout span{font-size:19px}.callout.big b{font-size:46px}.callout.big span{font-size:24px}}
+@media (prefers-reduced-motion:reduce){.callout{animation:none}}
 </style>
 </head>
 <body>
@@ -599,15 +606,17 @@ function resolve(){if(!G||G.sub!=='claim')return;clearTimeout(tm);const{t,from}=
  let q=order.find(q=>r(q).k==='hu');
  if(q!==undefined){take();G.seats[q].hand.push(t);return settle(q,false,from,t)}
  q=order.find(q=>r(q).k==='pong'||r(q).k==='kong');
- if(q!==undefined){const P=G.seats[q],k=r(q).k;take();rm(P.hand,t,k==='kong'?3:2);P.melds.push({type:k,tiles:Array(k==='kong'?4:3).fill(t)});log(`${P.name} ${k}s ${LBL(t)}`);G.turn=q;
+ if(q!==undefined){const P=G.seats[q],k=r(q).k;take();rm(P.hand,t,k==='kong'?3:2);P.melds.push({type:k,tiles:Array(k==='kong'?4:3).fill(t)});callout(q,k);log(`${P.name} ${k}s ${LBL(t)}`);G.turn=q;
   if(k==='kong'){payAll(q,1);log('Exposed kong: everyone pays 1');if(!drawTile(q,true))return}else G.drawn=null;
   return enterDiscard()}
  q=order.find(q=>r(q).k==='chow');
- if(q!==undefined){const P=G.seats[q],c=r(q).c;take();for(const x of c)if(x!==t)rm(P.hand,x);P.melds.push({type:'chow',tiles:c.slice()});log(`${P.name} chows ${LBL(t)}`);G.turn=q;G.drawn=null;return enterDiscard()}
+ if(q!==undefined){const P=G.seats[q],c=r(q).c;take();for(const x of c)if(x!==t)rm(P.hand,x);P.melds.push({type:'chow',tiles:c.slice()});callout(q,'chow');log(`${P.name} chows ${LBL(t)}`);G.turn=q;G.drawn=null;return enterDiscard()}
  nextTurn((from+1)%4)}
+/* Big call-out sign over a seat (Pong! Kong! Hu!) that everyone at the table sees. */
+function callout(s,k){G.call={s,k,id:(Number(G.call&&G.call.id)||0)+1,at:Date.now()}}
 function doSelfKong(s,t){const P=G.seats[s];
- if(cnt(P.hand,t)===4){rm(P.hand,t,4);P.melds.push({type:'kong',tiles:[t,t,t,t],concealed:true});payAll(s,2);log(`${P.name} declares a concealed kong: everyone pays 2`)}
- else{const m=P.melds.find(m=>m.type==='pong'&&m.tiles[0]===t);rm(P.hand,t);m.type='kong';m.tiles.push(t);payAll(s,1);log(`${P.name} adds to a kong of ${LBL(t)}: everyone pays 1`)}
+ if(cnt(P.hand,t)===4){rm(P.hand,t,4);P.melds.push({type:'kong',tiles:[t,t,t,t],concealed:true});callout(s,'ankong');payAll(s,2);log(`${P.name} declares a concealed kong: everyone pays 2`)}
+ else{const m=P.melds.find(m=>m.type==='pong'&&m.tiles[0]===t);rm(P.hand,t);m.type='kong';m.tiles.push(t);callout(s,'kong');payAll(s,1);log(`${P.name} adds to a kong of ${LBL(t)}: everyone pays 1`)}
  if(drawTile(s,true))enterDiscard()}
 function act(s,a){if(!G||G.phase!=='play')return;const P=G.seats[s];
  if(G.sub==='discard'&&s===G.turn){
@@ -622,7 +631,7 @@ function act(s,a){if(!G||G.phase!=='play')return;const P=G.seats[s];
 /* Payout table by tai: [shooter pays, each other player pays]. Self-draw: everyone pays the shooter amount.
    Ping hu has its own payout: off a discard shooter 10, others 5; self-drawn everyone pays 12 (no extra self-draw tai). */
 const PAYT={1:[2,1],2:[3,2],3:[5,3],4:[7,5],5:[20,10]};
-function settle(w,self,from,t){clearTimeout(tm);const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},pt=sc.tai<5&&(sc.items||[]).some(x=>x[0]==='Ping hu')?(self?[12,12]:[10,5]):PAYT[Math.max(1,Math.min(5,sc.tai))],before=G.seats.map(x=>x.score);
+function settle(w,self,from,t){clearTimeout(tm);callout(w,self?'zimo':'hu');const P=G.seats[w],sc=winScore(w,P.hand,t,self)||{tai:1,items:[]},pt=sc.tai<5&&(sc.items||[]).some(x=>x[0]==='Ping hu')?(self?[12,12]:[10,5]):PAYT[Math.max(1,Math.min(5,sc.tai))],before=G.seats.map(x=>x.score);
  if(self)payAll(w,pt[0]);else for(let i=0;i<4;i++)if(i!==w)pay(i,w,i===from?pt[0]:pt[1]);
  G.result={w,self,from,t,tai:sc.tai,items:sc.items,groups:sc.groups||null,delta:G.seats.map((x,i)=>x.score-before[i]),hand:sortT(P.hand.slice()),melds:P.melds,bonus:P.bonus};
  log(`${P.name} wins with ${sc.tai} tai!`);G.phase='end';G.sub=null;G.claims=null;
@@ -670,7 +679,7 @@ if(!myCid){myCid=Math.random().toString(36).slice(2,10);try{sessionStorage.setIt
 let myName='';try{myName=localStorage.getItem('mjname')||''}catch(e){}
 $('#nm').value=myName;
 const unwrap=m=>m&&typeof m==='object'&&'data'in m&&('from'in m||'topic'in m||'peer'in m||'sender'in m)?m.data:m;
-function pub(){const{wall,hidden,...rest}=G;const shown=Array.isArray(hidden)?hidden.map((w,b)=>G.blocks&&G.blocks[b]!==undefined?w:-1):null;return JSON.parse(JSON.stringify({...rest,hidden:shown,wallN:wall?wall.length:0,left:G.deadline?Math.max(0,G.deadline-Date.now()):0,gameLeft:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,hid:HID}))}
+function pub(){const{wall,hidden,...rest}=G;const shown=Array.isArray(hidden)?hidden.map((w,b)=>G.blocks&&G.blocks[b]!==undefined?w:-1):null;return JSON.parse(JSON.stringify({...rest,hidden:shown,wallN:wall?wall.length:0,left:G.deadline?Math.max(0,G.deadline-Date.now()):0,gameLeft:G.endsAt?Math.max(0,G.endsAt-Date.now()):0,callAge:G.call?Date.now()-G.call.at:1e9,hid:HID}))}
 function push(){G.v++;saveSolo();const s=pub();if(mode==='host'&&R)try{R.emit('state',s)}catch(e){}if(s.v!==(S&&S.v))sel=null;S=s;draw()}
 function hostIn(a){if(!a||typeof a!=='object'||!G)return;const cid=String(a.cid||'');
  if(a.k==='sit'){if(G.phase==='lobby'&&!G.seats.some(p=>p&&p.cid===cid)&&!(G.kicked||[]).includes(cid)){const i=G.seats.findIndex(p=>!p);if(i>=0){G.seats[i]=mkSeat(String(a.name||'').trim().slice(0,16)||'Player',cid,false);log(`${G.seats[i].name} sat down`)}}return push()}
@@ -706,7 +715,7 @@ async function joinTable(){const code=$('#code').value.trim().toUpperCase();if(!
  R.on('closed',()=>{if(mode==='guest'&&S&&S.phase!=='closed'){S={...S,phase:'closed'};draw()}});
  ping();timers.push(setInterval(()=>{ping();if(S&&S.phase!=='closed'&&Date.now()-lastSeen>16000)banner('Lost contact with the host…',true)},2500));
  $('#home').hidden=true;$('#game').hidden=false;$('#game').innerHTML=`<div class="card"><h2>Joining ${esc(code)}…</h2><p>Waiting for the host's table to answer. Check the code if this takes long.</p>${B('leave','Back','ghost')}</div>`}
-function leave(){leaveVoice(true);resetChat();setPeek(null);$('#game').style.zoom='';const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
+function leave(){leaveVoice(true);resetChat();setPeek(null);lastCall=0;$('#game').style.zoom='';const r=R;try{if(r&&mode==='guest')r.emit('act',{k:'quit',cid:myCid});if(r&&mode==='host'&&G){G.v++;r.emit('state',{...pub(),phase:'closed'})}}catch(e){}
  setTimeout(()=>{try{r&&r.leave&&r.leave()}catch(e){}},500);mode=null;tableCode=null;lobbyPresence();clearTimeout(tm);timers.forEach(clearInterval);timers=[];R=null;G=null;S=null;
  showContinue();$('#game').hidden=true;$('#modal').hidden=true;$('#banner').hidden=true;$('#home').hidden=false}
 function banner(t,stay){const b=$('#banner');b.textContent=t;b.hidden=false;if(!stay)setTimeout(()=>b.hidden=true,3000)}
@@ -957,7 +966,15 @@ function modalHTML(){
  <table><tbody>${(r.items||[]).map(([n,v])=>`<tr><td>${esc(n)}</td><td>${Number(v)}</td></tr>`).join('')}<tr class="tot"><td>Total (capped at 5)</td><td>${Number(r.tai)}</td></tr></tbody></table>
  <ul class="pay">${S.seats.map((p,i)=>{const d=Number((r.delta||[])[i])||0;return`<li><span>${esc(p.name)}</span><b class="${d>=0?'up':'dn'}">${d>0?'+':''}${d}</b></li>`}).join('')}</ul>
  ${contBtns(false)}</div>`}
-function draw(){if(!S)return;setTimeout(syncVoice,0);recvAt=Date.now();ME=S.seats.findIndex(p=>p&&p.cid===myCid);showChat();
+const CALLS={pong:['碰','PONG!'],kong:['槓','KONG!'],ankong:['暗槓','AN KANG!'],chow:['吃','CHOW!'],hu:['胡','HU!'],zimo:['自摸','ZI MO!']};
+let lastCall=0;
+function showCall(){const c=S.call;if(!c||!CALLS[c.k]||Number(c.id)===lastCall)return;lastCall=Number(c.id);if(Number(S.callAge)>2500)return;
+ const el=document.querySelector(`#game .who[data-seat="${Math.floor(Number(c.s))}"]`);let L=innerWidth/2,T=innerHeight/2;
+ if(el&&el.offsetParent){const r=el.getBoundingClientRect();L=r.left+r.width/2;T=r.top+r.height/2}
+ L=Math.max(110,Math.min(innerWidth-110,L));T=Math.max(90,Math.min(innerHeight-60,T));
+ const big=c.k==='hu'||c.k==='zimo',p=document.createElement('div');p.className='callout '+c.k+(big?' big':'');p.style.left=L+'px';p.style.top=T+'px';
+ p.innerHTML=`<b>${CALLS[c.k][0]}</b><span>${CALLS[c.k][1]}</span>`;document.querySelectorAll('.callout').forEach(x=>x.remove());document.body.appendChild(p);setTimeout(()=>p.remove(),big?2600:1700)}
+function draw(){if(!S)return;setTimeout(showCall,0);setTimeout(syncVoice,0);recvAt=Date.now();ME=S.seats.findIndex(p=>p&&p.cid===myCid);showChat();
  $('#home').hidden=true;const g=$('#game');g.hidden=false;const md=$('#modal');
  try{
   if(S.phase==='closed'){g.innerHTML=`<div class="card"><h2>The host closed this table</h2><p class="how">Thanks for playing!</p>${B('leave','Back','ghost')}</div>`;md.hidden=true;return}
