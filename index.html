@@ -315,7 +315,7 @@ summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:
    <summary>Rules used at this table</summary>
    <div id="guide"></div>
    <p>148 tiles: dots, bamboo and characters (1–9, four of each), four winds, three dragons, eight flowers and seasons, and four animals (cat, mouse, rooster, centipede). Bonus tiles go face-up and you draw a replacement.</p>
-   <p>Win with four sets (pong, kong or chow) plus a pair, or thirteen wonders. Winning by <b>self-draw (自摸) adds 1 tai</b>. A hand with <b>no tai</b> can still win and counts as <b>1 tai</b> (off a discard: the shooter pays 2, the others pay 1), or 2 tai if self-drawn. One exception: a no-tai hand <b>waiting in the middle</b> (like 5 _ 7 waiting on 6) can only win by <b>self-draw (自摸)</b>. Scoring caps at <b>5 tai</b>. The yellow <b>台</b> chip next to each name shows the tai already on the table: flowers or seasons matching that seat, every animal, and exposed pongs of dragons or the seat/round wind (hover or long-press to see why). Chow only from the player on your left; Hu beats Pong/Kong, which beats Chow.</p>
+   <p>Win with four sets (pong, kong or chow) plus a pair, or thirteen wonders. Winning by <b>self-draw (自摸) adds 1 tai</b>. A hand with <b>no tai</b> can still win and counts as <b>1 tai</b> (off a discard: the shooter pays 2, the others pay 1), or 2 tai if self-drawn. A no-tai hand also <b>can’t use your seat wind or a dragon (中 發 白) as its pair</b>: pong them for tai instead (a pair of another wind is fine). And a no-tai hand <b>waiting in the middle</b> (like 5 _ 7 waiting on 6) can only win by <b>self-draw (自摸)</b>. Scoring caps at <b>5 tai</b>. The yellow <b>台</b> chip next to each name shows the tai already on the table: flowers or seasons matching that seat, every animal, and exposed pongs of dragons or the seat/round wind (hover or long-press to see why). Chow only from the player on your left; Hu beats Pong/Kong, which beats Chow.</p>
    <div id="rulesEx"></div>
    <p>Payouts (capped at 5 tai):</p>
    <table class="payt"><thead><tr><th>Tai</th><th>Shooter pays</th><th>Others pay</th><th>Self-drawn: each pays</th></tr></thead><tbody><tr><td>1</td><td>2</td><td>1</td><td>2</td></tr><tr><td>2</td><td>3</td><td>2</td><td>3</td></tr><tr><td>3</td><td>5</td><td>3</td><td>5</td></tr><tr><td>4</td><td>7</td><td>5</td><td>7</td></tr><tr><td>5</td><td>20</td><td>10</td><td>20</td></tr></tbody></table>
@@ -519,9 +519,11 @@ function score(s,tiles,wt){const P=G.seats[s],sw=(s-G.dealer+4)%4,pw=G.round;
 const middleOnly=(tiles,wt)=>{if(!wt||!isNum(wt))return false;const ds=decomps(tiles);if(!ds.length)return false;
  return ds.every(d=>d.pair!==wt&&d.sets.every(x=>!x.tiles.includes(wt)||(x.type==='chow'&&x.tiles[1]===wt&&x.tiles[0]!==wt&&x.tiles[2]!==wt)))};
 /* Self-draw (自摸) adds +1 tai on top (a no-tai hand counts as 1, so a no-tai self-draw is 2 tai). Cap stays 5. */
+/* House rule: a no-tai hand can't use your seat wind or a dragon as its pair (pong it for tai instead). Other winds are fine. */
+const badPair=(s,tiles)=>{const w=(s-G.dealer+4)%4,bad=t=>t[0]==='Z'||t==='X'+'ESWN'[w],ds=decomps(tiles);return ds.length>0&&ds.every(d=>bad(d.pair))};
 const winScore=(s,tiles,wt,self)=>{if(tiles.length%3!==2)return null;const r=score(s,tiles,wt);if(!r)return null;
  let items=r.items.slice(),raw=items.reduce((a,b)=>a+b[1],0);
- if(r.tai<1){if(!self&&middleOnly(tiles,wt))return null;items=[['No tai (counts as 1 tai)',1]];raw=1}
+ if(r.tai<1){if(!self&&middleOnly(tiles,wt))return null;if(badPair(s,tiles))return null;items=[['No tai (counts as 1 tai)',1]];raw=1}
  const ph=items.some(x=>x[0]==='Ping hu');
  if(self&&r.tai<5&&!ph){items.push(['Self-drawn (自摸)',1]);raw+=1}
  return{...r,items,tai:Math.min(5,Math.max(r.tai,raw))}};
